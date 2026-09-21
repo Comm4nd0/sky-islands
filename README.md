@@ -25,6 +25,20 @@ npx cap open ios      # opens ios/App/App.xcodeproj
 Then pick your team under Signing & Capabilities and run on a device. Test on a real
 phone for frame rate, haptics and the silent switch. The simulator has no haptics.
 
+## TestFlight via Xcode Cloud
+
+The project is wired for Xcode Cloud: the App scheme is shared, automatic signing uses
+team TV3LZKGB46, and `ios/App/ci_scripts/ci_post_clone.sh` installs Node, runs
+`npm ci` and `cap sync`, and stamps the Xcode Cloud build number into
+`CFBundleVersion`. Every push to `main` can produce a TestFlight build once a workflow
+exists. Creating the workflow is a one-time step in Xcode: open
+`ios/App/App.xcodeproj`, Product > Xcode Cloud > Create Workflow, grant GitHub access to
+`Comm4nd0/sky-islands`, and add a TestFlight (Internal Testing) post-action.
+
+Note: archiving over SSH on the Mac mini fails at codesign with
+`errSecInternalComponent` because the login keychain is locked without a GUI session.
+Archive from Xcode itself, or let Xcode Cloud do it.
+
 ## Iterating on the game
 
 Edit `www/index.html`, then `npm run sync` and rebuild in Xcode. To try it in a desktop

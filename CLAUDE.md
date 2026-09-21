@@ -25,6 +25,9 @@ design brief and acceptance checklist.
   The HTML also has its own stage-rotation fallback; leave both.
 - Status bar: hidden via the plist with `UIViewControllerBasedStatusBarAppearance` false.
 - Device family is iPhone only (`TARGETED_DEVICE_FAMILY = 1`), deployment target 16.0.
+- Xcode Cloud depends on the shared `App` scheme and `ios/App/ci_scripts/ci_post_clone.sh`.
+  Keep `CURRENT_PROJECT_VERSION` at 1 in git; CI overwrites it with `CI_BUILD_NUMBER`.
+  Bump `MARKETING_VERSION` by hand for a new user-facing version.
 
 ## Verifying without a Mac
 
