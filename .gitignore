@@ -1,0 +1,18 @@
+node_modules/
+.DS_Store
+*.log
+npm-debug.log*
+
+# Capacitor copies www/ into the native project on every sync; the copy is generated.
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/CapApp-SPM/.build/
+ios/App/Pods/
+ios/App/build/
+ios/App/output/
+ios/App/DerivedData/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.xcuserstate

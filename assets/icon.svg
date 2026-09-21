@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#12356b"/>
+  <radialGradient id="sky" cx="0.5" cy="0.42" r="0.6">
+    <stop offset="0" stop-color="#1e4f95"/>
+    <stop offset="1" stop-color="#12356b"/>
+  </radialGradient>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <g transform="translate(512.0,532.48) scale(30)">
+    <defs>
+      <radialGradient id="flame" gradientUnits="userSpaceOnUse" cx="-2" cy="2" r="11" fx="-2" fy="2">
+        <stop offset="0" stop-color="#ffe259"/>
+        <stop offset="0.6" stop-color="#ff9d21"/>
+        <stop offset="1" stop-color="#e2431c"/>
+      </radialGradient>
+    </defs>
+    <path fill="url(#flame)" d="M0,-13 Q7,-7 10,0 Q12,10 0,11 Q-12,10 -10,0 Q-8,-6 -3,-9 Q-2,-11 0,-13 Z"/>
+    <circle cx="-3.4" cy="0.5" r="1.5" fill="#2a1206"/>
+    <circle cx="3.4"  cy="0.5" r="1.5" fill="#2a1206"/>
+    <path d="M2.317,4.180 A2.6,2.6 0 0 1 -2.317,4.180"
+          fill="none" stroke="#2a1206" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+</svg>
