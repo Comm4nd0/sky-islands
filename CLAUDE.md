@@ -7,8 +7,6 @@ design brief and acceptance checklist.
 
 - `www/index.html` is the game and the only web asset. Do not split it into modules or
   add a bundler. Edit it in place.
-- `sky-islands.html` at the root is the untouched original. Do not edit it; the two
-  files are expected to diverge as the app evolves.
 - Anything native goes through Capacitor plugins called from the HTML via
   `window.Capacitor.Plugins.*`, guarded so the file still runs in a plain browser.
 - After editing `www/` or `capacitor.config.ts`, run `npx cap sync ios`. The copy under

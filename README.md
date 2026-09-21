@@ -12,7 +12,6 @@ A landscape arcade game (Canvas 2D, single HTML file) wrapped as a native iPhone
 | `capacitor.config.ts` | App id, name, iOS webview settings. |
 | `ios/` | Generated Xcode project (Swift Package Manager, no CocoaPods). Committed. |
 | `assets/` | Icon and splash sources. `icon.svg` / `splash.svg` are the editable originals. |
-| `sky-islands.html` | The original export from Claude chat, kept untouched for reference. |
 
 ## Building (needs a Mac with Xcode 15+)
 
