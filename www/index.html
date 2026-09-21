@@ -43,14 +43,15 @@
   #stage{ position:fixed; top:0; left:0; transform-origin:0 0; overflow:hidden; }
   body.rot{ --st:10px; --sb:10px; --sl:10px; --sr:10px; }
   #btnAct{
-    position:fixed; top:calc(8px + var(--st)); left:50%; transform:translateX(-50%) scale(.85);
+    position:fixed; right:calc(20px + var(--sr)); bottom:calc(142px + var(--sb)); width:104px;
+    transform:scale(.85); transform-origin:50% 100%;
     z-index:8; opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease;
-    font-family:inherit; font-size:20px; letter-spacing:1px; color:#fff; padding:9px 26px;
+    font-family:inherit; font-size:19px; letter-spacing:1px; color:#fff; padding:9px 0; text-align:center;
     border-radius:14px; border:3px solid #ffe9a8; background:linear-gradient(#3f8f3a,#1d5a2a);
     box-shadow:0 4px 0 #123d1c, 0 8px 18px rgba(0,0,0,.35);
   }
-  #btnAct.show{ opacity:1; pointer-events:auto; transform:translateX(-50%) scale(1); }
-  #btnAct:active{ transform:translateX(-50%) translateY(3px) scale(1); box-shadow:0 2px 0 #123d1c; }
+  #btnAct.show{ opacity:1; pointer-events:auto; transform:scale(1); }
+  #btnAct:active{ transform:translateY(3px) scale(1); box-shadow:0 2px 0 #123d1c; }
   #shop{
     position:fixed; inset:0; z-index:7; display:flex; flex-direction:column;
     background:linear-gradient(rgba(6,16,36,.94),rgba(4,10,26,.97));
@@ -220,6 +221,7 @@ const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d');
 const CTX = ctx;
 let W = 0, H = 0, DPR = 1, seaY = 0, ceilY = 0, jetX = 0, skyTop = 0;
+const ZOOM = 0.8;   // view scale: < 1 shows more of the world
 
 const stage = document.getElementById('stage');
 let rotated = false;
@@ -243,9 +245,9 @@ function layoutStage(){
 function resize(){
   layoutStage();
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = stage.clientWidth; H = stage.clientHeight;
-  cvs.width = Math.floor(W * DPR); cvs.height = Math.floor(H * DPR);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  W = stage.clientWidth / ZOOM; H = stage.clientHeight / ZOOM;
+  cvs.width = Math.floor(stage.clientWidth * DPR); cvs.height = Math.floor(stage.clientHeight * DPR);
+  ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0);
   seaY = H * 0.855;
   skyTop = -H * 1.15;          // the stratosphere, about one screen above the clouds
   ceilY = skyTop + 26;
@@ -256,7 +258,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200));
 
 // ---------- helpers ----------
 const probe = document.getElementById('safeProbe');
-function safeTopPx(){ return rotated ? 10 : (probe ? probe.getBoundingClientRect().height : 0); }
+function safeTopPx(){ return (rotated ? 10 : (probe ? probe.getBoundingClientRect().height : 0)) / ZOOM; }
 function safeTop(){ return safeTopPx(); }
 const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
 const lerp = (a,b,t) => a + (b-a)*t;
@@ -762,11 +764,13 @@ function update(dt){
   // vertical
   const thrust = (G.fx.lift > 0 ? 0.98 : 0.64) * PL.lift;
   const climbCap = G.fx.lift > 0 ? -11 : -9;
-  if(input.up && !dry && G.vy > climbCap) G.vy -= thrust * dt;
+  if(input.up && !dry && G.vy > climbCap && G.jetY > skyTop - H*0.8) G.vy -= thrust * dt;
   G.vy += 0.30 * dt;
   G.vy = clamp(G.vy, -22, 9.5);          // bounces can beat the engine
   G.jetY += G.vy * dt;
-  if(G.jetY < ceilY){ G.jetY = ceilY; G.vy = Math.max(0, G.vy); }
+  // no hard ceiling: the jet can climb out of the top of the screen. The engine
+  // only gives up well above it, so gravity always brings the jet back into view.
+  if(G.jetY < skyTop - H*0.8 && G.vy < 0){ G.vy = Math.min(G.vy + 0.6*dt, 0); }
 
   // altitude: 0 at the sea, 1 at the top of the sky
   const alt = clamp((seaY - G.jetY) / (seaY - skyTop), 0, 1);
@@ -1197,7 +1201,20 @@ function outlineText(text, x, y, size, fill, align){
   ctx.fillStyle = fill; ctx.fillText(text,x,y);
 }
 
+function drawOffscreenJet(){
+  const sy = G.jetY - G.camY;
+  if(sy > -6) return;
+  const y = safeTop() + 14;
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,18,40,.55)'; rr(jetX - 22, y - 12, 44, 24, 12); ctx.fill();
+  ctx.fillStyle = '#ffe9a0';
+  ctx.beginPath(); ctx.moveTo(jetX, y - 8); ctx.lineTo(jetX + 7, y + 4); ctx.lineTo(jetX - 7, y + 4); ctx.closePath(); ctx.fill();
+  const m = Math.round(-sy / 10);
+  outlineText(m + 'm', jetX + 26, y, 13, '#ffe9a0', 'left');
+  ctx.restore();
+}
 function drawHUD(){
+  drawOffscreenJet();
   const pad = 16;
   const top = safeTop() + 34;
   // health flames
