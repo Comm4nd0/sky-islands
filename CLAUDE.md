@@ -12,6 +12,18 @@ design brief and acceptance checklist.
 - After editing `www/` or `capacitor.config.ts`, run `npx cap sync ios`. The copy under
   `ios/App/App/public/` is generated and gitignored.
 - `ios/App/CapApp-SPM/Package.swift` is managed by the Capacitor CLI. Do not hand-edit.
+  `cap sync` points it at `github.com/ionic-team/capacitor-swift-pm`, which Xcode Cloud
+  cannot clone (its GitHub App can only be installed by an ionic-team owner), so
+  `scripts/patch-capacitor-spm.mjs` rewrites that dependency to the vendored manifest in
+  `ios/App/capacitor-swift-pm/` after every sync. It patches the plugin manifests under
+  `node_modules/@capacitor/*` too — leaving those on the remote package makes SwiftPM
+  clone it anyway and warn about a conflicting identity. Run it via `npm run sync`, never
+  bare `cap sync`; `ci_post_clone.sh` runs it after `npm ci`.
+- `ios/App/capacitor-swift-pm/Package.swift` is a copy of the upstream tag, and upstream
+  is only a manifest — the code arrives as notarized xcframework zips from GitHub
+  Releases, which are plain HTTPS downloads Xcode Cloud can fetch. When bumping
+  `@capacitor/ios`, replace it with the matching tag's file; the patch script refuses to
+  run if the pinned version and `@capacitor/ios` disagree.
 - `server/` is the leaderboard API. It runs as compose project `/root/sky-islands` on the
   Hetzner box (root@178.104.29.66), host port 8020, fronted by the Caddy block for
   skyislands.lumatechsolutions.co.uk in `/root/caddy/Caddyfile`. Deploy steps are in

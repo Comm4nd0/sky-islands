@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Sky Islands \u2014 landscape arcade game wrapped as a native iOS app with Capacitor",
   "scripts": {
-    "sync": "cap sync ios",
+    "sync": "cap sync ios && node scripts/patch-capacitor-spm.mjs",
     "open": "cap open ios",
     "assets": "capacitor-assets generate --ios --iconBackgroundColor '#12356b' --splashBackgroundColor '#12356b'",
     "serve": "npx --yes serve www -l 8080"

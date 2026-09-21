@@ -29,7 +29,9 @@ phone for frame rate, haptics and the silent switch. The simulator has no haptic
 
 The project is wired for Xcode Cloud: the App scheme is shared, automatic signing uses
 team TV3LZKGB46, and `ios/App/ci_scripts/ci_post_clone.sh` installs Node, runs
-`npm ci` and `cap sync`, and stamps the Xcode Cloud build number into
+`npm ci` and `cap sync`, repoints the Capacitor runtime at the vendored
+`ios/App/capacitor-swift-pm` (Xcode Cloud will not start a workflow while a dependency
+lives in a GitHub org you cannot install its app into), and stamps the build number into
 `CFBundleVersion`. Every push to `main` can produce a TestFlight build once a workflow
 exists. Creating the workflow is a one-time step in Xcode: open
 `ios/App/App.xcodeproj`, Product > Xcode Cloud > Create Workflow, grant GitHub access to

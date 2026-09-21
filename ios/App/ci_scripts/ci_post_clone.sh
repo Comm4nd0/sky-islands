@@ -26,6 +26,11 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 npm ci --no-audit --no-fund
 npx cap sync ios
 
+# Both npm ci and cap sync write manifests that depend on capacitor-swift-pm over
+# git, which Xcode Cloud cannot clone without a GitHub App only ionic-team can
+# install. Repoint them at ios/App/capacitor-swift-pm.
+node scripts/patch-capacitor-spm.mjs
+
 # TestFlight rejects a build number it has already seen, and the project pins
 # CURRENT_PROJECT_VERSION = 1. CI_BUILD_NUMBER increments per Xcode Cloud build
 # and flows into CFBundleVersion through Info.plist's $(CURRENT_PROJECT_VERSION).
