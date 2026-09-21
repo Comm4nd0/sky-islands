@@ -126,7 +126,10 @@
     background:var(--panel); border:3px solid rgba(255,255,255,.5); border-radius:22px;
     padding:26px 22px 24px; box-shadow:0 18px 50px rgba(0,0,0,.5);
   }
-  .card{ max-height:100%; overflow:auto; }
+  .card{ max-height:100%; display:flex; flex-direction:column; overflow:hidden; }
+  .card .body{ min-height:0; overflow-y:auto; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+  .card .actions{ flex:none; }
+  body.short #screen{ padding:10px; padding-top:calc(10px + var(--st)); }
   body.short .card{ padding:16px 18px 16px; border-radius:18px; }
   body.short .card h1{ font-size:30px; }
   body.short .card h2{ font-size:16px; margin:4px 0 8px; }
@@ -1336,15 +1339,18 @@ const cardEl = document.getElementById('card');
 function showStart(){
   state = 'start';
   cardEl.innerHTML =
+    '<div class="body">' +
     '<h1>Sky Islands</h1><h2>Power Up!</h2>' +
-    '<p>Fly the jet and find islands. Petrol burns as you fly — land on an island runway to fill up, or grab a petrol drum in the air.</p>' +
+    '<p>Fly the jet and find islands. Petrol burns as you fly — grab petrol drums in the air to keep going.</p>' +
     '<p>Rocks, hills and the sea all bite. You have three flames.</p>' +
-    '<p>Bounce off the red jump pads on the islands to reach the thin air — the sparkly clouds up there bounce you higher the higher you get, and gold pays more.</p>' +
-    '<div class="keys"><span class="chip">▲ climb</span><span class="chip">▶ speed up</span><span class="chip">◀ slow down</span><span class="chip">LAND at the top</span></div>' +
+    '<p>Bounce off the red jump pads to reach the thin air, where the sparkly clouds bounce you higher and gold pays more.</p>' +
+    '<div class="keys"><span class="chip">▲ climb</span><span class="chip">▶ speed up</span><span class="chip">◀ slow down</span></div>' +
     '<div class="stat">' + SAVE.bank + ' gold in the bank' + (G.best ? ' · best run ' + G.best : '') + '</div>' +
     '<p>Flying the ' + PL.name + ' over ' + TM.name + '</p>' +
+    '</div><div class="actions">' +
     '<button class="go" id="startBtn">Take off</button>' +
-    '<button class="go alt" id="shopBtn">Shop</button>';
+    '<button class="go alt" id="shopBtn">Shop</button>' +
+    '</div>';
   screenEl.classList.remove('hide');
   document.getElementById('startBtn').addEventListener('click', start);
   document.getElementById('shopBtn').addEventListener('click', openShop);
@@ -1361,13 +1367,16 @@ function gameOver(){
   if(score > G.best) G.best = score;
   saveBest();
   cardEl.innerHTML =
+    '<div class="body">' +
     '<h1>' + (G.ranDry ? 'Ran dry' : 'Down in the drink') + '</h1>' +
     '<div class="stat">' + score + ' gold</div>' +
-    '<p>' + G.found + ' island' + (G.found===1?'':'s') + ' found · ' + G.landings + ' landing' + (G.landings===1?'':'s') + ' · ' + Math.floor(G.dist/100) + ' km flown</p>' +
+    '<p>' + G.found + ' island' + (G.found===1?'':'s') + ' found · ' + Math.floor(G.dist/100) + ' km flown</p>' +
     '<p>Best run ' + G.best + ' gold · ' + SAVE.bank + ' gold in the bank</p>' +
     (score > 0 ? '<div id="lb"></div>' : '') +
+    '</div><div class="actions">' +
     '<button class="go" id="againBtn">Fly again</button>' +
-    '<button class="go alt" id="shopBtn2">Shop</button>';
+    '<button class="go alt" id="shopBtn2">Shop</button>' +
+    '</div>';
   screenEl.classList.remove('hide');
   document.getElementById('againBtn').addEventListener('click', start);
   document.getElementById('shopBtn2').addEventListener('click', openShop);
