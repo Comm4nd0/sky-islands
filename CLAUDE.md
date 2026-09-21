@@ -12,6 +12,10 @@ design brief and acceptance checklist.
 - After editing `www/` or `capacitor.config.ts`, run `npx cap sync ios`. The copy under
   `ios/App/App/public/` is generated and gitignored.
 - `ios/App/CapApp-SPM/Package.swift` is managed by the Capacitor CLI. Do not hand-edit.
+- `server/` is the leaderboard API. It runs as compose project `/root/sky-islands` on the
+  Hetzner box (root@178.104.29.66), host port 8020, fronted by the Caddy block for
+  skyislands.lumatechsolutions.co.uk in `/root/caddy/Caddyfile`. Deploy steps are in
+  `server/README.md`. Reloading Caddy touches every site on that box; validate first.
 
 ## Things that are easy to break
 
@@ -30,3 +34,7 @@ This machine is Linux, so Xcode builds are not possible here. What can be checke
 - Headless Chromium at 852×393 (iPhone 15 landscape CSS px) to see the start screen and
   confirm no console errors or external network requests.
 - `npx cap sync ios` completes cleanly.
+- Leaderboard end to end: run `server/` locally with `SKY_DB=/tmp/x.db uvicorn app:app`,
+  make a scratch copy of `www/` with `const API = 'http://127.0.0.1:8000'`, expose
+  `start`/`gameOver`/`G` on `window` before the closing `})();`, and drive it with a
+  few `setTimeout`s under headless Chromium `--virtual-time-budget=6000`.

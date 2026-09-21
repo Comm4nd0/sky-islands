@@ -12,6 +12,7 @@ A landscape arcade game (Canvas 2D, single HTML file) wrapped as a native iPhone
 | `capacitor.config.ts` | App id, name, iOS webview settings. |
 | `ios/` | Generated Xcode project (Swift Package Manager, no CocoaPods). Committed. |
 | `assets/` | Icon and splash sources. `icon.svg` / `splash.svg` are the editable originals. |
+| `server/` | Leaderboard API (FastAPI + SQLite). Deployed on Luma001 at https://skyislands.lumatechsolutions.co.uk. See `server/README.md`. |
 
 ## Building (needs a Mac with Xcode 15+)
 
@@ -48,5 +49,10 @@ The game is unchanged apart from two additive edits:
 - A `haptic()` helper (a no-op outside Capacitor) fires a light impact on jump pads,
   bounce clouds, touchdown and shield/god hits, and a medium impact on real damage.
 
-Save data lives in `localStorage` under `skyIslandsSave`. See `HANDOFF.md` for the full
-design notes and the acceptance checklist.
+Save data lives in `localStorage` under `skyIslandsSave`, which now also holds the pilot
+name and a random player id used by the leaderboard. Posting a score is opt-in from the
+game-over card, times out after 6 s, and fails quietly, so the game works fully offline.
+When served from localhost the client talks to `http://127.0.0.1:8000` instead of
+production.
+
+See `HANDOFF.md` for the full design notes and the acceptance checklist.

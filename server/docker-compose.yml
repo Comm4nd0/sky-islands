@@ -1,0 +1,22 @@
+# Deployed at /root/sky-islands on Luma001. Caddy proxies
+# skyislands.lumatechsolutions.co.uk -> 172.17.0.1:8020.
+services:
+  web:
+    build: .
+    image: sky-islands-api:latest
+    container_name: sky-islands-web
+    ports:
+      - "172.17.0.1:8020:8000"
+    environment:
+      SKY_DB: /data/scores.db
+    volumes:
+      - sky-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  sky-data:

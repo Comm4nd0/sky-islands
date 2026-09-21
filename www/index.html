@@ -149,6 +149,20 @@
   .go:active{ transform:translateY(3px); box-shadow:0 3px 0 #6d1114; }
   .stat{ font-size:20px; color:#ffd98a; margin-top:10px; }
   @media (prefers-reduced-motion: reduce){ .rb{ transition:none; } }
+  /* leaderboard on the game-over card */
+  #lb{ margin:8px auto 4px; max-width:420px; font-size:15px; }
+  #lb .row{ display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap; }
+  #lb input{ font-family:inherit; font-size:15px; letter-spacing:1px; color:#fff; width:150px;
+    background:rgba(255,255,255,.12); border:2px solid rgba(255,255,255,.3); border-radius:10px; padding:6px 10px; }
+  #lb button{ font-family:inherit; font-size:15px; color:#fff; background:#2f74c4; border:2px solid #9fd8ec;
+    border-radius:10px; padding:6px 14px; cursor:pointer; }
+  #lb .msg{ color:#9fc4e6; font-size:13px; margin-top:4px; }
+  #lb table{ border-collapse:collapse; margin:4px auto 0; color:#eaf4ff; }
+  #lb td{ padding:1px 8px; white-space:nowrap; }
+  #lb td.n{ color:#ffd98a; text-align:right; }
+  #lb td.s{ color:#ffe9a0; text-align:right; }
+  #lb tr.you td{ color:#bfe9ff; }
+  #lb tr.you td.n, #lb tr.you td.s{ color:#fff; }
 </style>
 </head>
 <body>
@@ -355,7 +369,7 @@ const THEMES = [
     pier:'#2a2f5e', pier2:'#1a1d3c', run:'#2b2f56', runMark:'#37e0ff' }
 ];
 
-const SAVE = { bank:0, best:0, planes:{bluebird:1}, themes:{emerald:1}, plane:'bluebird', theme:'emerald', codes:{}, god:false };
+const SAVE = { bank:0, best:0, planes:{bluebird:1}, themes:{emerald:1}, plane:'bluebird', theme:'emerald', codes:{}, god:false, name:'', pid:'' };
 
 // secret codes
 const CODES = {
@@ -401,16 +415,68 @@ function loadBest(){
         SAVE.themes = Object.assign({emerald:1}, d.themes || {});
         SAVE.plane = d.plane || 'bluebird'; SAVE.theme = d.theme || 'emerald';
         SAVE.codes = d.codes || {}; SAVE.god = !!d.god;
+        SAVE.name = typeof d.name === 'string' ? d.name : ''; SAVE.pid = typeof d.pid === 'string' ? d.pid : '';
       }
     } else {
       const old = localStorage.getItem('skyIslandsBest');
       if(old) SAVE.best = parseInt(old,10) || 0;
     }
   }catch(e){}
+  if(!SAVE.pid){ SAVE.pid = newPlayerId(); persist(); }
   G.best = SAVE.best;
   applyEquip();
 }
 function saveBest(){ SAVE.best = G.best; persist(); }
+
+// ---------- leaderboard (optional; the game is fully playable offline) ----------
+const API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:8000'
+          : 'https://skyislands.lumatechsolutions.co.uk';
+function newPlayerId(){
+  try{ if(crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  let s = ''; for(let i = 0; i < 32; i++) s += (Math.random()*16|0).toString(16);
+  return s;
+}
+async function api(path, body){
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+  try{
+    const r = await fetch(API + path, {
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'Content-Type':'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctl.signal
+    });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+function esc(t){ return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function boardHTML(res){
+  const rows = (res.top || []).slice(0, 5).map(e =>
+    '<tr' + (e.you ? ' class="you"' : '') + '><td class="n">' + e.rank + '</td><td>' + esc(e.name) + '</td><td class="s">' + e.score + '</td></tr>').join('');
+  const me = res.me || (res.rank ? { rank:res.rank, name:SAVE.name, score:res.best, you:true } : null);
+  const mine = me && me.rank > 5 ? '<tr class="you"><td class="n">' + me.rank + '</td><td>' + esc(me.name) + '</td><td class="s">' + me.score + '</td></tr>' : '';
+  return '<table>' + rows + mine + '</table>' +
+    '<div class="msg">' + (res.improved ? 'New personal best · ' : '') + 'Rank ' + (me ? me.rank : '–') + ' of ' + res.players + ' pilots</div>';
+}
+function mountLeaderboard(run){
+  const lb = document.getElementById('lb'); if(!lb) return;
+  const post = async () => {
+    const name = (document.getElementById('lbName').value || '').trim().slice(0, 16) || 'Pilot';
+    SAVE.name = name; persist();
+    lb.innerHTML = '<div class="msg">Posting…</div>';
+    try{
+      const res = await api('/api/v1/scores', { player_id:SAVE.pid, name, score:run.score, islands:run.islands, landings:run.landings, km:run.km });
+      lb.innerHTML = boardHTML(res);
+    }catch(e){
+      lb.innerHTML = '<div class="msg">Leaderboard unavailable right now</div>';
+    }
+  };
+  lb.innerHTML =
+    '<div class="row"><input id="lbName" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Pilot name" value="' + esc(SAVE.name) + '">' +
+    '<button id="lbPost">Post score</button></div>';
+  document.getElementById('lbPost').addEventListener('click', post);
+  document.getElementById('lbName').addEventListener('keydown', e => { if(e.key === 'Enter') post(); });
+}
 
 const TILE = 14;
 function makeIsland(x, seed){
@@ -1299,11 +1365,13 @@ function gameOver(){
     '<div class="stat">' + score + ' gold</div>' +
     '<p>' + G.found + ' island' + (G.found===1?'':'s') + ' found · ' + G.landings + ' landing' + (G.landings===1?'':'s') + ' · ' + Math.floor(G.dist/100) + ' km flown</p>' +
     '<p>Best run ' + G.best + ' gold · ' + SAVE.bank + ' gold in the bank</p>' +
+    (score > 0 ? '<div id="lb"></div>' : '') +
     '<button class="go" id="againBtn">Fly again</button>' +
     '<button class="go alt" id="shopBtn2">Shop</button>';
   screenEl.classList.remove('hide');
   document.getElementById('againBtn').addEventListener('click', start);
   document.getElementById('shopBtn2').addEventListener('click', openShop);
+  mountLeaderboard({ score, islands:G.found, landings:G.landings, km:Math.floor(G.dist/100) });
 }
 
 // ---------- shop ----------
