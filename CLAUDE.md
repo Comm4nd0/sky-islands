@@ -9,7 +9,8 @@ design brief and acceptance checklist.
   add a bundler. Edit it in place.
 - Anything native goes through Capacitor plugins called from the HTML via
   `window.Capacitor.Plugins.*`, guarded so the file still runs in a plain browser.
-- After editing `www/` or `capacitor.config.ts`, run `npx cap sync ios`. The copy under
+- After editing `www/` or `capacitor.config.ts`, run `npm run sync`, never bare `cap sync`:
+  the patch step after it is what lets Xcode Cloud resolve packages. The copy under
   `ios/App/App/public/` is generated and gitignored.
 - `ios/App/CapApp-SPM/Package.swift` is managed by the Capacitor CLI. Do not hand-edit.
   `cap sync` points it at `github.com/ionic-team/capacitor-swift-pm`, which Xcode Cloud
@@ -51,7 +52,7 @@ This machine is Linux, so Xcode builds are not possible here. What can be checke
 - `node --check` on the inline script (extract between the `<script>` tags).
 - Headless Chromium at 852×393 (iPhone 15 landscape CSS px) to see the start screen and
   confirm no console errors or external network requests.
-- `npx cap sync ios` completes cleanly.
+- `npm run sync` completes cleanly and leaves `git status` clean.
 - Leaderboard end to end: run `server/` locally with `SKY_DB=/tmp/x.db uvicorn app:app`,
   make a scratch copy of `www/` with `const API = 'http://127.0.0.1:8000'`, expose
   `start`/`gameOver`/`G` on `window` before the closing `})();`, and drive it with a

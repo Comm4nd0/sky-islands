@@ -18,7 +18,7 @@ A landscape arcade game (Canvas 2D, single HTML file) wrapped as a native iPhone
 
 ```sh
 npm install
-npx cap sync ios      # copies www/ into the Xcode project and resolves plugins
+npm run sync          # cap sync, then repoints the SPM manifests at the vendored package
 npx cap open ios      # opens ios/App/App.xcodeproj
 ```
 
