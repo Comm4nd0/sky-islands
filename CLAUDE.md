@@ -32,6 +32,10 @@ design brief and acceptance checklist.
 
 ## Things that are easy to break
 
+- Daily course: everything in `ensureWorld` draws from the per-stream RNGs on `G`
+  (`rngI`/`rngP`/`rngC`), never `Math.random`, or two phones stop seeing the same course
+  and ghosts stop lining up. Ghost tracks store altitude as a fraction of sea-to-sky, not
+  pixels, because `H` differs between phones.
 - Audio: `AudioContext` must be created lazily on the first "Take off" tap (iOS gesture
   requirement). Do not move it earlier.
 - Orientation: `Info.plist` allows landscape only and `UIRequiresFullScreen` is true.
@@ -53,7 +57,10 @@ This machine is Linux, so Xcode builds are not possible here. What can be checke
 - Headless Chromium at 852×393 (iPhone 15 landscape CSS px) to see the start screen and
   confirm no console errors or external network requests.
 - `npm run sync` completes cleanly and leaves `git status` clean.
-- Leaderboard end to end: run `server/` locally with `SKY_DB=/tmp/x.db uvicorn app:app`,
+- Leaderboard and ghosts end to end: run `server/` locally with `SKY_DB=/tmp/x.db uvicorn app:app`,
   make a scratch copy of `www/` with `const API = 'http://127.0.0.1:8000'`, expose
-  `start`/`gameOver`/`G` on `window` before the closing `})();`, and drive it with a
-  few `setTimeout`s under headless Chromium `--virtual-time-budget=6000`.
+  `start`/`gameOver`/`G`/`input`/`frame` on `window` before the closing `})();`, and drive
+  it from a `setTimeout` under headless Chromium `--virtual-time-budget`. Virtual time does
+  NOT advance requestAnimationFrame, so gate the loop's self-scheduling behind a flag and
+  call `frame(now += 16.667)` in a loop yourself; hand it back to rAF before the screenshot
+  or the canvas is never presented.

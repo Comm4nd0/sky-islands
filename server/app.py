@@ -2,8 +2,10 @@
 
 A deliberately small service: one SQLite file, two real endpoints.
 
-  POST /api/v1/scores        submit a run; keeps each player's best
-  GET  /api/v1/leaderboard   top N plus the caller's own rank
+  POST /api/v1/scores        submit a run; keeps each player's best, and their best
+                             on that day's course together with the recorded track
+  GET  /api/v1/leaderboard   all-time top N plus the caller's own rank
+  GET  /api/v1/ghosts        top runs on a course with tracks, for ghost racing
   GET  /healthz              liveness for compose and Caddy
 
 There are no accounts. A player is a random id the app generates once and
@@ -14,6 +16,7 @@ per-IP rate limit make it tedious rather than impossible.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sqlite3
@@ -32,6 +35,8 @@ MAX_SCORE = int(os.environ.get("SKY_MAX_SCORE", "250000"))     # gold in one run
 MAX_ISLANDS = int(os.environ.get("SKY_MAX_ISLANDS", "500"))
 MAX_KM = int(os.environ.get("SKY_MAX_KM", "2000"))
 RATE_PER_MIN = int(os.environ.get("SKY_RATE_PER_MIN", "12"))   # submissions per IP per minute
+MAX_TRACK = 12000                                              # numbers: 6000 samples at 10 Hz = 10 min
+COURSE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 NAME_RE = re.compile(r"[^A-Za-z0-9 _.\-'!?]")
 PLAYER_RE = re.compile(r"^[A-Za-z0-9\-]{8,64}$")
 
@@ -84,6 +89,18 @@ def init_db() -> None:
               updated_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS scores_by_score ON scores(score DESC, updated_at ASC);
+            CREATE TABLE IF NOT EXISTS runs (
+              course     TEXT NOT NULL,
+              player_id  TEXT NOT NULL,
+              name       TEXT NOT NULL,
+              score      INTEGER NOT NULL,
+              islands    INTEGER NOT NULL DEFAULT 0,
+              km         INTEGER NOT NULL DEFAULT 0,
+              track      TEXT NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (course, player_id)
+            );
+            CREATE INDEX IF NOT EXISTS runs_by_course ON runs(course, score DESC, updated_at ASC);
             """
         )
 
@@ -127,6 +144,29 @@ class ScoreIn(BaseModel):
     islands: int = Field(0, ge=0, le=MAX_ISLANDS)
     landings: int = Field(0, ge=0, le=MAX_ISLANDS)
     km: int = Field(0, ge=0, le=MAX_KM)
+    course: str | None = Field(None, max_length=10)
+    track: list[float] | None = Field(None, max_length=MAX_TRACK)
+
+    @field_validator("course")
+    @classmethod
+    def _course(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not COURSE_RE.match(v):
+            raise ValueError("bad course")
+        return v
+
+    @field_validator("track")
+    @classmethod
+    def _track(cls, v: list[float] | None) -> list[float] | None:
+        if v is None:
+            return None
+        if len(v) % 2 or len(v) < 4:
+            raise ValueError("track must be [x, alt, x, alt, ...]")
+        for i in range(0, len(v), 2):
+            if not (0 <= v[i] <= 10_000_000) or not (-5 <= v[i + 1] <= 5):
+                raise ValueError("track value out of range")
+        return v
 
     @field_validator("player_id")
     @classmethod
@@ -175,6 +215,35 @@ def _top(conn: sqlite3.Connection, limit: int, me: str | None) -> list[Entry]:
     ]
 
 
+def _course_rank(conn: sqlite3.Connection, course: str, score: int, updated_at: int) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM runs WHERE course = ? AND (score > ? OR (score = ? AND updated_at < ?))",
+        (course, score, score, updated_at),
+    ).fetchone()
+    return int(row["n"]) + 1
+
+
+def _course_top(conn: sqlite3.Connection, course: str, limit: int, me: str | None) -> list[Entry]:
+    rows = conn.execute(
+        "SELECT player_id, name, score, islands, km FROM runs WHERE course = ? "
+        "ORDER BY score DESC, updated_at ASC LIMIT ?",
+        (course, limit),
+    ).fetchall()
+    return [
+        Entry(rank=i + 1, name=r["name"], score=r["score"], islands=r["islands"], km=r["km"],
+              you=(r["player_id"] == me))
+        for i, r in enumerate(rows)
+    ]
+
+
+def _compact(track: list[float]) -> str:
+    out: list[float] = []
+    for i in range(0, len(track), 2):
+        out.append(int(track[i]))
+        out.append(round(track[i + 1], 3))
+    return json.dumps(out, separators=(",", ":"))
+
+
 # ---------- routes ----------
 
 
@@ -211,7 +280,55 @@ def submit(body: ScoreIn, request: Request) -> dict:
         rank = _rank_of(conn, best, when)
         top = _top(conn, 10, body.player_id)
         total = conn.execute("SELECT COUNT(*) AS n FROM scores").fetchone()["n"]
-    return {"best": best, "rank": rank, "improved": improved, "players": total, "top": top}
+
+        daily = None
+        if body.course and body.track:
+            cur = conn.execute("SELECT score, updated_at FROM runs WHERE course=? AND player_id=?",
+                               (body.course, body.player_id)).fetchone()
+            if cur is None or body.score > cur["score"]:
+                conn.execute(
+                    "INSERT OR REPLACE INTO runs(course,player_id,name,score,islands,km,track,updated_at) "
+                    "VALUES(?,?,?,?,?,?,?,?)",
+                    (body.course, body.player_id, body.name, body.score, body.islands, body.km,
+                     _compact(body.track), now),
+                )
+                dbest, dwhen = body.score, now
+            else:
+                conn.execute("UPDATE runs SET name=? WHERE course=? AND player_id=?",
+                             (body.name, body.course, body.player_id))
+                dbest, dwhen = cur["score"], cur["updated_at"]
+            daily = {
+                "course": body.course,
+                "best": dbest,
+                "rank": _course_rank(conn, body.course, dbest, dwhen),
+                "players": conn.execute("SELECT COUNT(*) AS n FROM runs WHERE course=?", (body.course,)).fetchone()["n"],
+                "top": _course_top(conn, body.course, 10, body.player_id),
+            }
+    return {"best": best, "rank": rank, "improved": improved, "players": total, "top": top, "daily": daily}
+
+
+@app.get("/api/v1/ghosts")
+def ghosts(course: str = Query(..., max_length=10), limit: int = Query(3, ge=1, le=10),
+           player_id: str | None = Query(None, max_length=64)) -> dict:
+    if not COURSE_RE.match(course):
+        raise HTTPException(status_code=422, detail="bad course")
+    me = player_id if player_id and PLAYER_RE.match(player_id) else None
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT player_id, name, score, track FROM runs WHERE course = ? "
+            "ORDER BY score DESC, updated_at ASC LIMIT ?",
+            (course, limit),
+        ).fetchall()
+        out = [{"name": r["name"], "score": r["score"], "you": r["player_id"] == me,
+                "track": json.loads(r["track"])} for r in rows]
+        if me and not any(g["you"] for g in out):
+            mine = conn.execute("SELECT name, score, track FROM runs WHERE course=? AND player_id=?",
+                                (course, me)).fetchone()
+            if mine:
+                out.append({"name": mine["name"], "score": mine["score"], "you": True,
+                            "track": json.loads(mine["track"])})
+        players = conn.execute("SELECT COUNT(*) AS n FROM runs WHERE course=?", (course,)).fetchone()["n"]
+    return {"course": course, "players": players, "ghosts": out}
 
 
 @app.get("/api/v1/leaderboard")
