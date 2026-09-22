@@ -27,7 +27,7 @@ phone for frame rate, haptics and the silent switch. The simulator has no haptic
 
 ## TestFlight via Xcode Cloud
 
-The project is wired for Xcode Cloud: the App scheme is shared, automatic signing uses
+The project is wired for Xcode Cloud: the `Sky Islands` scheme is shared, automatic signing uses
 team TV3LZKGB46, and `ios/App/ci_scripts/ci_post_clone.sh` installs Node, runs
 `npm ci` and `cap sync`, repoints the Capacitor runtime at the vendored
 `ios/App/capacitor-swift-pm` (Xcode Cloud will not start a workflow while a dependency

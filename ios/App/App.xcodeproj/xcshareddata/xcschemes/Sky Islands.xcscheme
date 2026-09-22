@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1500"
-   version = "1.7">
+   version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "504EC3031FED79650016851F"
-               BuildableName = "App.app"
-               BlueprintName = "App"
+               BuildableName = "Sky Islands.app"
+               BlueprintName = "Sky Islands"
                ReferencedContainer = "container:App.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,8 +45,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "504EC3031FED79650016851F"
-            BuildableName = "App.app"
-            BlueprintName = "App"
+            BuildableName = "Sky Islands.app"
+            BlueprintName = "Sky Islands"
             ReferencedContainer = "container:App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,8 +62,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "504EC3031FED79650016851F"
-            BuildableName = "App.app"
-            BlueprintName = "App"
+            BuildableName = "Sky Islands.app"
+            BlueprintName = "Sky Islands"
             ReferencedContainer = "container:App.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

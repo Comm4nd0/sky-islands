@@ -14,16 +14,16 @@ fi
 echo "==> simulator: $DEVICE"
 
 npm install --no-audit --no-fund
-npx cap sync ios
+npm run sync
 
 DERIVED=build/DerivedData
 xcodebuild \
-  -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -project ios/App/App.xcodeproj -scheme "Sky Islands" -configuration Debug \
   -sdk iphonesimulator -destination "platform=iOS Simulator,name=$DEVICE" \
   -derivedDataPath "$DERIVED" \
   CODE_SIGNING_ALLOWED=NO build | tail -3
 
-APP="$DERIVED/Build/Products/Debug-iphonesimulator/App.app"
+APP="$DERIVED/Build/Products/Debug-iphonesimulator/Sky Islands.app"
 UDID=$(xcrun simctl list devices available | grep "$DEVICE (" | head -1 | grep -oE "[0-9A-F-]{36}")
 xcrun simctl boot "$UDID" 2>/dev/null || true
 open -a Simulator --args -CurrentDeviceUDID "$UDID" || true

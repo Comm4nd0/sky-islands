@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'www',
   backgroundColor: '#12356b',
   ios: {
+    // The Xcode target and shared scheme are both "Sky Islands"; the CLI defaults to "App".
+    scheme: 'Sky Islands',
     contentInset: 'never',
     scrollEnabled: false,
     limitsNavigationsToAppBoundDomains: false,
