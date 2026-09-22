@@ -434,8 +434,10 @@ function loadBest(){
 function saveBest(){ SAVE.best = G.best; persist(); }
 
 // ---------- leaderboard (optional; the game is fully playable offline) ----------
-const API = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:8000'
-          : 'https://skyislands.lumatechsolutions.co.uk';
+// Local dev only when served over plain http from this machine. The native app runs
+// at capacitor://localhost, so hostname alone would wrongly pick the local service.
+const API = (location.protocol === 'http:' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname))
+          ? 'http://127.0.0.1:8000' : 'https://skyislands.lumatechsolutions.co.uk';
 function newPlayerId(){
   try{ if(crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
   let s = ''; for(let i = 0; i < 32; i++) s += (Math.random()*16|0).toString(16);
