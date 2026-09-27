@@ -7,9 +7,11 @@ A deliberately small service: one SQLite file, two real endpoints.
   GET  /api/v1/leaderboard   all-time top N plus the caller's own rank
   GET  /api/v1/ghosts        top runs on a course with tracks, for ghost racing
   GET  /healthz              liveness for compose and Caddy
+  GET  /privacy, /support    static pages the App Store listing links to
 
 There are no accounts. A player is a random id the app generates once and
-keeps in localStorage. The name is whatever they typed, sanitised. Scores can
+keeps in localStorage. The name is whatever they typed, sanitised, and replaced
+with "Pilot" if it trips the blocklist (App Review guideline 1.2). Scores can
 be forged by anyone who reads the app bundle; the plausibility caps and the
 per-IP rate limit make it tedious rather than impossible.
 """
@@ -28,6 +30,7 @@ from typing import Iterator
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator
 
 DB_PATH = os.environ.get("SKY_DB", "/data/scores.db")
@@ -39,6 +42,35 @@ MAX_TRACK = 12000                                              # numbers: 6000 s
 COURSE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 NAME_RE = re.compile(r"[^A-Za-z0-9 _.\-'!?]")
 PLAYER_RE = re.compile(r"^[A-Za-z0-9\-]{8,64}$")
+PAGES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pages")
+
+# Names are public on the leaderboard and over ghosts, so offensive ones become "Pilot".
+# Checked after folding case and digit look-alikes. BLOCK_ANY matches anywhere in the
+# name with separators removed; BLOCK_WORD only whole words, because as substrings they
+# hit ordinary names (Hancock, Essex, Dickens).
+BLOCK_ANY = (
+    "fuck", "shit", "cunt", "nigg", "fagg", "bitch", "whore", "slut", "wank", "twat",
+    "rape", "nazi", "hitler", "retard", "porn", "penis", "vagina", "pussy", "dildo",
+    "jizz", "kike", "tranny", "bollock", "asshole", "arsehole", "motherf", "bastard",
+)
+BLOCK_WORD = {
+    "dick", "cock", "fag", "ass", "arse", "tit", "tits", "sex", "spic", "chink", "paki",
+    "coon", "homo", "cum", "kkk", "isis", "piss", "crap", "damn",
+}
+_LEET = str.maketrans("013457", "oieast")
+
+
+def clean_name(v: str) -> str:
+    v = NAME_RE.sub("", v).strip()[:16]
+    if not v:
+        return "Pilot"
+    folded = v.lower().translate(_LEET).replace("!", "i")    # sh!t, but "Ace!" stays a word
+    joined = re.sub(r"[^a-z]", "", folded)
+    words = set(re.split(r"[^a-z]+", folded)) | set(re.split(r"[^a-z]+", v.lower().translate(_LEET))) | {joined}
+    if any(b in joined for b in BLOCK_ANY) or words & BLOCK_WORD:
+        return "Pilot"
+    return v
+
 
 app = FastAPI(title="Sky Islands leaderboard", docs_url=None, redoc_url=None)
 app.add_middleware(
@@ -103,6 +135,11 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS runs_by_course ON runs(course, score DESC, updated_at ASC);
             """
         )
+        # re-apply the current blocklist to names stored before it (or a word) existed
+        for table in ("scores", "runs"):
+            for (name,) in conn.execute(f"SELECT DISTINCT name FROM {table}").fetchall():
+                if clean_name(name) != name:
+                    conn.execute(f"UPDATE {table} SET name=? WHERE name=?", (clean_name(name), name))
 
 
 @app.on_event("startup")
@@ -178,8 +215,7 @@ class ScoreIn(BaseModel):
     @field_validator("name")
     @classmethod
     def _name(cls, v: str) -> str:
-        v = NAME_RE.sub("", v).strip()[:16]
-        return v or "Pilot"
+        return clean_name(v)
 
 
 class Entry(BaseModel):
@@ -252,6 +288,21 @@ def healthz() -> dict:
     with db() as conn:
         n = conn.execute("SELECT COUNT(*) AS n FROM scores").fetchone()["n"]
     return {"ok": True, "players": n}
+
+
+def _page(name: str) -> HTMLResponse:
+    with open(os.path.join(PAGES_DIR, name), encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy() -> HTMLResponse:
+    return _page("privacy.html")
+
+
+@app.get("/support", response_class=HTMLResponse)
+def support() -> HTMLResponse:
+    return _page("support.html")
 
 
 @app.post("/api/v1/scores")

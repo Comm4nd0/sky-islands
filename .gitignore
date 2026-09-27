@@ -17,3 +17,4 @@ ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
 ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
 *.xcuserstate
 build/
+__pycache__/
