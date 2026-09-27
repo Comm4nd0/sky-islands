@@ -1,8 +1,8 @@
 # App Store listing — Sky Islands 1.0.1
 
-Source of truth for what is entered in App Store Connect. Screenshots are in
-`screenshots/iphone-6.9/` (2868×1320, 6.9" iPhone landscape, no alpha); App Store Connect
-scales them down for the smaller iPhone sizes. They were captured from the real game under
+Source of truth for what is entered in App Store Connect. Submitted 2026-09-27 with build 8.
+This app's media slot is the 6.5" display, so `screenshots/iphone-6.5/` (2778×1284) is what was
+uploaded; `screenshots/iphone-6.9/` (2868×1320) is the same set at the newer size. No alpha. They were captured from the real game under
 headless Chromium at 956×440 CSS px ×3, with the ghosts and leaderboard served from a mock API.
 
 ## App information
@@ -12,8 +12,8 @@ headless Chromium at 956×440 CSS px ×3, with the ghosts and leaderboard served
 | Name | Sky Islands |
 | Subtitle (30) | Fly, find islands, race ghosts |
 | Bundle ID | uk.co.lumatechsolutions.skyislands |
-| Primary category | Games › Arcade |
-| Secondary category | Games › Casual |
+| Primary category | Games (subcategories Action, Casual; App Store Connect has no Arcade) |
+| Secondary category | Entertainment |
 | Content rights | No third-party content (the Luckiest Guy font is Apache 2.0 and bundled) |
 | Copyright | © 2026 Luma Tech Solutions |
 | Price | Free, all territories |
@@ -58,7 +58,14 @@ island skins.
 
 plane,jet,arcade,flying,pilot,island,ghost,race,daily,leaderboard,casual,sky,clouds,flight
 
+## Release
+
+Automatic release after approval. Also on Apple silicon Macs (App Store Connect default).
+
 ## Age rating questionnaire
+
+Result: 4+. Korea shows "Add RCN" (a GRAC rating number); none has been added.
+
 
 Everything "None" / "No", except:
 - User-generated content: Yes (pilot nicknames on the public leaderboard, filtered

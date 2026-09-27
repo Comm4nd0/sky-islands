@@ -35,7 +35,12 @@ lives in a GitHub org you cannot install its app into), and stamps the build num
 `CFBundleVersion`. Every push to `main` can produce a TestFlight build once a workflow
 exists. Creating the workflow is a one-time step in Xcode: open
 `ios/App/App.xcodeproj`, Product > Xcode Cloud > Create Workflow, grant GitHub access to
-`Comm4nd0/sky-islands`, and add a TestFlight (Internal Testing) post-action.
+`Comm4nd0/sky-islands`, and add a TestFlight (Internal Testing) post-action. The Archive
+action's Distribution Preparation must be **App Store Connect**: builds archived as
+"TestFlight (Internal Testing Only)" cannot be attached to an App Store version (builds 3–7
+were). The workflow can be edited in the browser under App Store Connect › Xcode Cloud.
+
+The App Store listing text, privacy answers and screenshots are in `store/`.
 
 Note: archiving over SSH on the Mac mini fails at codesign with
 `errSecInternalComponent` because the login keychain is locked without a GUI session.
