@@ -97,6 +97,37 @@ Nothing else (no contact info, location, diagnostics, usage data or purchases).
   > words; players can report a name at https://skyislands.lumatechsolutions.co.uk/support.
   > The game is landscape only and fully playable offline.
 
+  > SECRET CODE (Guideline 2.1 clarification)
+  > From the start screen, tap Shop. In Hangar & Shop, enter a code in the Secret code
+  > field and tap Enter. These are all three built-in, optional, free gameplay cheat
+  > codes in version 1.0.1 (8):
+  >
+  > FLAMECAT - Unlocks every plane and island skin and enables invincibility. Can be
+  > redeemed once per local saved game.
+  > IRONWING - Toggles invincibility on or off and can be used repeatedly. After testing
+  > FLAMECAT, enter IRONWING to return to normal damage.
+  > FULLTANK - Adds 2,500 in-game gold to the local bank. Can be redeemed once per local
+  > saved game.
+  >
+  > All three codes are included in the app and work offline for every player. No
+  > account, payment, purchase, subscription, external website or external code service
+  > is required. Gold has no monetary value and cannot be bought for real money. Planes
+  > and island skins can also be unlocked through normal gameplay using earned gold.
+  > Codes and their effects are saved locally on the device; reusing a one-time code
+  > displays "Already used that one."
+  >
+  > No sign-in is required to review any feature.
+
+### Review clarification — 2026-09-30
+
+Apple requested information about "Secret Code" under Guideline 2.1 for version 1.0.1
+(8), submission `c34cb846-d475-4f0c-96e6-2e5822911c8f`. The review notes above were
+expanded in App Store Connect to document all codes and their free, offline behaviour.
+The existing game implementation already provides the described functionality; no new
+binary is needed for this clarification. Chrome verification covered all three codes,
+the invincibility toggle in both directions, saved rewards after reload, and the
+one-time redemption message.
+
 ## Export compliance
 
 `ITSAppUsesNonExemptEncryption` is `false` in Info.plist, so no question on submission.

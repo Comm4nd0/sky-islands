@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Sky Islands — Power Up!</title>
+<title>Sky Islands — Flight Club</title>
 <style>
   /* Bundled locally so the app never touches the network. */
   @font-face{
@@ -167,10 +167,60 @@
   #lb td.s{ color:#ffe9a0; text-align:right; }
   #lb tr.you td{ color:#bfe9ff; }
   #lb tr.you td.n, #lb tr.you td.s{ color:#fff; }
+  /* Flight briefing: the gold route line ties missions, hangar and logbook together. */
+  button, select, input { touch-action:manipulation; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #ffd98a; outline-offset:3px; }
+  button { min-height:44px; }
+  .card.briefing { width:min(800px,100%); text-align:left; }
+  .brief-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+  .brief-grid > section + section { border-left:2px solid #eab65b; padding-left:20px; }
+  .card h3 { font-size:19px; margin:0 0 9px; color:#ffd98a; font-weight:400; }
+  .card .intro { color:#b3d9ee; margin:9px 0 14px; }
+  .flight-choice { display:flex; gap:8px; flex-wrap:wrap; }
+  .flight-choice button, .minor { font:14px system-ui,sans-serif; font-weight:650; border:1px solid #7192b6; color:#eaf4ff; background:#173458; border-radius:9px; padding:9px 12px; cursor:pointer; }
+  .flight-choice button.selected { background:#ffd98a; color:#12356b; border-color:#ffd98a; }
+  .brief-footer { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .brief-footer .go { margin:0; flex:1; font-size:20px; padding:10px 18px; }
+  .mission { font:13px/1.35 system-ui,sans-serif; padding:8px 0; border-bottom:1px solid #456080; }
+  .mission b { color:#fff; } .mission span { float:right; color:#ffd98a; }
+  .mission progress { width:100%; height:6px; display:block; margin-top:5px; accent-color:#ffd98a; }
+  .small-note { font:12px/1.45 system-ui,sans-serif; color:#a8cbe4; }
+  #flightBar { position:absolute; top:calc(8px + var(--st)); left:50%; transform:translateX(-50%); z-index:4; display:flex; gap:8px; }
+  #pauseBtn { background:rgba(10,24,48,.85); color:white; border:1px solid #a8cbe4; border-radius:10px; padding:8px 15px; font:15px system-ui,sans-serif; }
+  #flightBar.hide, #tutorialHint.hide, #panel.hide { display:none; }
+  #tutorialHint { position:absolute; top:calc(56px + var(--st)); left:50%; transform:translateX(-50%); width:min(420px,65%); background:rgba(10,24,48,.94); border-left:4px solid #ffd98a; padding:9px 14px; color:white; font:14px/1.4 system-ui,sans-serif; z-index:4; pointer-events:none; }
+  #panel { position:absolute; inset:0; z-index:10; display:grid; place-items:center; padding:calc(10px + var(--st)) calc(14px + var(--sr)) calc(10px + var(--sb)) calc(14px + var(--sl)); background:rgba(5,14,32,.87); }
+  .panel-card { width:min(760px,100%); max-height:100%; overflow-y:auto; touch-action:pan-y; background:#102b4d; color:#eaf4ff; border:2px solid #749cc1; border-radius:18px; padding:18px 22px; }
+  .panel-head { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:12px; }
+  .panel-head h2 { margin:0; color:#ffd98a; font-size:26px; font-weight:400; }
+  .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; font:14px system-ui,sans-serif; }
+  .setting { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; }
+  .setting input[type=checkbox] { width:24px; height:24px; accent-color:#ffd98a; }
+  .setting input[type=range] { width:120px; accent-color:#ffd98a; }
+  .setting select, #ghostChoice { border:1px solid #7e9dbb; border-radius:7px; padding:8px; background:#173458; color:#fff; max-width:180px; font:14px system-ui,sans-serif; min-height:44px; }
+  .log-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; font:13px/1.4 system-ui,sans-serif; }
+  .log-entry { border-bottom:2px solid #456080; padding:8px; }
+  .log-entry strong { color:#ffd98a; } .log-entry.locked { opacity:.65; }
+  .landmark-icon { font-size:28px; display:block; color:#bce6f6; }
+  .control-preview { margin:14px 0; padding:12px; border:1px dashed #7e9dbb; font:13px system-ui,sans-serif; }
+  .reduced-motion *, .reduced-motion *::before { transition:none!important; animation:none!important; }
+  #btnL, #btnR { width:var(--small-control,76px); height:var(--small-control,76px); bottom:calc(var(--control-bottom,24px) + var(--sb)); }
+  #btnL { left:calc(18px + var(--sl)); }
+  #btnR { left:calc(30px + var(--small-control,76px) + var(--sl)); }
+  #btnU { width:var(--large-control,96px); height:var(--large-control,96px); bottom:calc(var(--control-bottom,24px) + var(--sb)); }
+  #btnAct { bottom:calc(var(--control-bottom,24px) + var(--large-control,96px) + 10px + var(--sb)); min-height:44px; }
+  .left-handed #btnU { left:calc(20px + var(--sl)); right:auto; }
+  .left-handed #btnL { right:calc(30px + var(--small-control,76px) + var(--sr)); left:auto; }
+  .left-handed #btnR { right:calc(18px + var(--sr)); left:auto; }
+  .left-handed #btnAct { left:calc(16px + var(--sl)); right:auto; }
+  body.short .card.briefing { padding:14px 18px; }
+  body.short .briefing .go { margin-top:0; font-size:19px; padding:9px 16px; }
+  body.short .briefing h1 { font-size:34px; }
+  @media(max-height:360px) { .brief-grid { gap:12px; } .mission { padding:4px 0; } .brief-footer { margin-top:8px; } }
 </style>
 </head>
 <body>
-<div id="safeProbe" style="position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px);pointer-events:none;opacity:0"></div>
+<div id="safeProbe" style="position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);pointer-events:none;opacity:0"></div>
 
 <div id="stage">
 <canvas id="c"></canvas>
@@ -192,6 +242,9 @@
 </div>
 
 <button id="btnAct">LAND</button>
+<div id="flightBar" class="hide"><button id="pauseBtn" aria-label="Pause flight">Ⅱ Pause</button></div>
+<div id="tutorialHint" class="hide" aria-live="polite"></div>
+<div id="panel" class="hide" role="dialog" aria-modal="true" aria-label="Flight menu"><div class="panel-card" id="panelBody"></div></div>
 
 <div id="shop" class="hide">
   <div class="shopbar">
@@ -204,7 +257,8 @@
   <div class="coderow">
     <input id="codeIn" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Secret code">
     <button id="codeGo">Enter</button>
-    <span id="codeMsg"></span>
+    <span id="codeMsg" aria-live="polite"></span>
+    <span class="small-note">Free Flight cheat codes · disabled in Daily Race</span>
   </div>
   <div id="shopList" class="list"></div>
 </div>
@@ -221,7 +275,8 @@ const cvs = document.getElementById('c');
 const ctx = cvs.getContext('2d');
 const CTX = ctx;
 let W = 0, H = 0, DPR = 1, seaY = 0, ceilY = 0, jetX = 0, skyTop = 0;
-const ZOOM = 0.8;   // view scale: < 1 shows more of the world
+let safeInsets={left:0,right:0,top:0};
+let ZOOM = 0.8;   // view scale: < 1 shows more of the world
 
 const stage = document.getElementById('stage');
 let rotated = false;
@@ -245,20 +300,24 @@ function layoutStage(){
 function resize(){
   layoutStage();
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = stage.clientWidth / ZOOM; H = stage.clientHeight / ZOOM;
+  // Fixed world height and pilot position keep daily geometry identical on every phone.
+  H = 491.25; ZOOM = stage.clientHeight / H; W = stage.clientWidth / ZOOM;
   cvs.width = Math.floor(stage.clientWidth * DPR); cvs.height = Math.floor(stage.clientHeight * DPR);
   ctx.setTransform(DPR * ZOOM, 0, 0, DPR * ZOOM, 0, 0);
   seaY = H * 0.855;
   skyTop = -H * 1.15;          // the stratosphere, about one screen above the clouds
   ceilY = skyTop + 26;
-  jetX = Math.max(96, W * 0.28);
+  jetX = 260;
+  sceneryCache.clear();
+  const insets=getComputedStyle(document.getElementById('safeProbe'));
+  safeInsets={left:(parseFloat(insets.paddingLeft)||0)/ZOOM,right:(parseFloat(insets.paddingRight)||0)/ZOOM,top:(parseFloat(insets.height)||0)/ZOOM};
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 200));
 
 // ---------- helpers ----------
 const probe = document.getElementById('safeProbe');
-function safeTopPx(){ return (rotated ? 10 : (probe ? probe.getBoundingClientRect().height : 0)) / ZOOM; }
+function safeTopPx(){ return rotated?10/ZOOM:safeInsets.top; }
 function safeTop(){ return safeTopPx(); }
 const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
 const lerp = (a,b,t) => a + (b-a)*t;
@@ -277,16 +336,20 @@ function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t
 // ---------- haptics (native only; silently a no-op in a browser) ----------
 const HAPTICS = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) || null;
 function haptic(style){
-  if(!HAPTICS) return;
-  try{ HAPTICS.impact({ style: style || 'LIGHT' }); }catch(e){}
+  if(!HAPTICS || !SAVE.settings.haptics) return;
+  try{ HAPTICS.impact({ style: style || 'LIGHT' }).catch(()=>{}); }catch(e){}
 }
 
 // ---------- audio (tiny blips) ----------
 let AC = null;
+function unlockAudio(){
+  if(!SAVE.settings.sound) return;
+  try { if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if(AC.state === 'suspended') AC.resume().catch(()=>{}); } catch(e){}
+}
 function blip(freq, dur, type, vol){
+  if(!AC || !SAVE.settings.sound || document.hidden || state === 'paused') return;
   try{
-    if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
-    if(AC.state === 'suspended') AC.resume();
+    if(AC.state === 'suspended') AC.resume().catch(()=>{});
     const o = AC.createOscillator(), g = AC.createGain();
     o.type = type || 'square'; o.frequency.value = freq;
     g.gain.setValueAtTime(vol || 0.05, AC.currentTime);
@@ -384,7 +447,28 @@ const THEMES = [
     pier:'#2a2f5e', pier2:'#1a1d3c', run:'#2b2f56', runMark:'#37e0ff' }
 ];
 
-const SAVE = { bank:0, best:0, planes:{bluebird:1}, themes:{emerald:1}, plane:'bluebird', theme:'emerald', codes:{}, god:false, name:'', pid:'' };
+const SETTINGS = { sound:true, haptics:true, reducedMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches, controlSize:1, controlHeight:24, handedness:'right', ghost:'personal' };
+const SAVE = { bank:0, best:0, planes:{bluebird:1}, themes:{emerald:1}, plane:'bluebird', theme:'emerald', codes:{}, god:false, name:'', pid:'', settings:{...SETTINGS}, tutorial:false, daily:{}, discoveries:{}, landmarks:{}, badges:{}, stats:{}, ghosts:{}, dailyBest:{} };
+const RULESET = 'flight-club-1';
+const DAILY_SECONDS = 180;
+let flightMode = 'free', pausedFrom = 'play', resumeAt = 0, flightSerial = 0;
+const sceneryCache = new Map();
+const LANDMARKS = [
+  { id:'lighthouse', name:'The old lighthouse', icon:'◈', hint:'Watch the shoreline for a striped tower.' },
+  { id:'windmill', name:'Cloudmill', icon:'✣', hint:'Find turning sails above a runway.' },
+  { id:'ruins', name:'The forgotten arch', icon:'∩', hint:'Look for ancient stone on an island summit.' },
+  { id:'observatory', name:'Starwatch dome', icon:'◉', hint:'A quiet dome watches the upper sky.' },
+  { id:'beacon', name:'Aurora beacon', icon:'◇', hint:'A rare crystal glows beside the sea.' }
+];
+const MISSIONS = [
+  {id:'landings', target:3, title:'Land on 3 different islands', reward:200},
+  {id:'fuel', target:5, title:'Collect 5 petrol drums', reward:150},
+  {id:'high', target:1, title:'Reach the stratosphere', reward:200},
+  {id:'rings', target:8, title:'Fly through 8 rings', reward:200},
+  {id:'deliveries', target:2, title:'Deliver 2 parcels', reward:300},
+  {id:'islands', target:6, title:'Discover 6 islands', reward:200},
+  {id:'bounces', target:4, title:'Bounce on 4 sky clouds', reward:150}
+];
 
 // secret codes
 const CODES = {
@@ -404,6 +488,183 @@ function applyEquip(){
 
 const ISLE_A = ['Verdant','Ember','Coral','Thunder','Hollow','Gull','Amber','Frost','Salt','Copper','Drift','Palm','Mossy','Stone','Bramble'];
 const ISLE_B = ['Cay','Reach','Rock','Isle','Shoal','Holm','Bank','Key','Perch','Spit'];
+
+// ---------- flight club: missions, discoveries and preferences ----------
+function applySettings(){
+  const st = document.documentElement.style, o = SAVE.settings;
+  st.setProperty('--small-control', Math.round(76*o.controlSize)+'px');
+  st.setProperty('--large-control', Math.round(96*o.controlSize)+'px');
+  st.setProperty('--control-bottom', o.controlHeight+'px');
+  document.body.classList.toggle('left-handed', o.handedness === 'left');
+  document.body.classList.toggle('reduced-motion', !!o.reducedMotion);
+}
+function dailyProgress(day=courseId()){
+  if(SAVE.daily.day !== day) SAVE.daily = {day, counts:{}, claimed:{}};
+  return SAVE.daily;
+}
+function dailyMissions(day=courseId()){
+  const start = hashStr(day)%MISSIONS.length;
+  return [0,2,4].map(n => MISSIONS[(start+n)%MISSIONS.length]);
+}
+function progressEvent(id, amount=1){
+  if(G.mode === 'tutorial') return;
+  SAVE.stats[id] = (SAVE.stats[id] || 0) + amount;
+  const d = dailyProgress(G.course);
+  d.counts[id] = (d.counts[id] || 0) + amount;
+  for(const m of dailyMissions(G.course)){
+    if((d.counts[m.id]||0) >= m.target && !d.claimed[m.id]){
+      d.claimed[m.id] = true; SAVE.bank += m.reward; G.rewardGold += m.reward;
+      G.banner = {life:3, name:'Mission complete', sub:m.title+' · +'+m.reward+' gold', color:'#ffd98a'};
+    }
+  }
+  if(dailyMissions(G.course).every(m=>d.claimed[m.id])) SAVE.badges['daily-'+G.course] = true;
+  for(const [key, threshold, badge] of [['landings',10,'ace'],['deliveries',5,'courier'],['rings',30,'acrobat'],['islands',20,'explorer'],['high',1,'astronaut']]){
+    if((SAVE.stats[key]||0) >= threshold) SAVE.badges[badge] = true;
+  }
+  persist();
+}
+function missionHTML(){
+  const d=dailyProgress();
+  return dailyMissions().map(m=>{
+    const count=Math.min(m.target,d.counts[m.id]||0), done=!!d.claimed[m.id];
+    return '<div class="mission"><span>'+(done?'✓ Earned':m.reward+' gold')+'</span><b>'+m.title+'</b><div>'+count+' / '+m.target+'</div><progress max="'+m.target+'" value="'+count+'" aria-label="'+m.title+'"></progress></div>';
+  }).join('');
+}
+function discoverIsland(is){
+  if(is.found) return;
+  is.found=true; G.found++; G.gold+=100;
+  if(G.mode === 'tutorial') return;
+  SAVE.discoveries[is.name]={theme:TM.id, day:G.course, landmark:is.landmark};
+  if(is.landmark) SAVE.landmarks[is.landmark]=true;
+  // Keep the latest 100 named places; landmark and achievement collections never expire.
+  const names=Object.keys(SAVE.discoveries);
+  if(names.length>100) delete SAVE.discoveries[names[0]];
+  progressEvent('islands');
+}
+function trick(label, base){
+  G.combo = G.comboT > 0 ? Math.min(5,G.combo+1) : 1; G.comboT=6;
+  const reward=base*G.combo; G.gold+=reward;
+  G.banner={life:1.5,name:label+(G.combo>1?' ×'+G.combo:''),sub:'+'+reward+' gold · chain another within 6s',color:'#a5f5de'};
+}
+function assignDeliveryTarget(){
+  if(!G.parcel || G.parcel.toX != null) return;
+  const next = G.islands.find(is=>is.x>G.parcel.fromX && is.strip);
+  if(next){ G.parcel.toX=next.x; G.parcel.to=next.name; }
+}
+function handleDelivery(is){
+  if(G.mode === 'tutorial') return;
+  assignDeliveryTarget();
+  if(G.parcel && G.parcel.toX === is.x){
+    G.gold+=300; G.deliveries++; progressEvent('deliveries');
+    G.banner={life:3,name:'Parcel delivered!',sub:is.name+' · +300 gold',color:'#ffd98a'};
+    G.parcel=null;
+  }
+  if(!G.parcel){
+    G.parcel={from:is.name,fromX:is.x,toX:null,to:''}; assignDeliveryTarget();
+    if(G.deliveries===0) G.banner={life:3,name:'Parcel aboard',sub:'Deliver to '+(G.parcel.to||'the next runway'),color:'#ffd98a'};
+  }
+}
+function updateActivities(dt){
+  const wx=G.scroll+jetX;
+  if(G.mode==='tutorial'){
+    if(G.tutorialStep===0 && input.up){
+      G.tutorialClimb+=dt/60;
+      if(G.tutorialClimb>.65){G.tutorialStep=1; G.pickups=[];}
+    }
+    if(G.tutorialStep===1 && !G.pickups.some(p=>!p.got && p.x>wx-35)){
+      G.pickups=[{x:wx+260,y:clamp(G.jetY,80,seaY-90),type:TYPES[0],phase:0,got:false}];
+    }
+    if(G.tutorialStep===2 && !G.islands.some(is=>is.strip && is.x+is.w>wx+40)){
+      const is=makeIsland(wx+320,12345); is.heights.fill(56); is.strip={i0:3,i1:is.tiles-4,h:56}; is.feats=[]; is.rocks.fill(false); is.pads=[];
+      G.islands=[is]; G.nextIsland=is.x+is.w+1200;
+    }
+  }
+  for(const is of G.islands){
+    for(const ring of is.rings){
+      if(ring.got||ring.missed) continue;
+      if(Math.abs(ring.x-wx)<24 && Math.abs(ring.y-G.jetY)<30){
+        ring.got=true; G.rings++; trick('Clean ring',25); progressEvent('rings');
+        blip(750+G.combo*90,.08,'sine',.045); haptic('LIGHT');
+      } else if(ring.x<wx-26){ring.missed=true; G.combo=0;}
+    }
+    const gap=terrainTopAt(wx)-G.jetY;
+    if(!is.lowPass && wx>is.x && wx<is.x+is.w && gap>22 && gap<52 && G.speed>5 && G.invuln<=0){
+      is.lowPass=true; trick('Low pass',40); progressEvent('lowpasses');
+    }
+  }
+  assignDeliveryTarget();
+  if(G.parcel && G.parcel.toX!=null){
+    const target=G.islands.find(is=>is.x===G.parcel.toX);
+    if((target && wx>target.x+target.w+100)||(!target && wx>G.parcel.toX+800)){
+      G.banner={life:2.5,name:'Missed the delivery',sub:'Pick up a new parcel at the next runway',color:'#ffba9b'}; G.parcel=null;
+    }
+  }
+}
+function updateTutorialHint(){
+  const el=document.getElementById('tutorialHint');
+  el.classList.toggle('hide',G.mode!=='tutorial'||!['play','landing','landed'].includes(state));
+  if(G.mode!=='tutorial') return;
+  const steps=['1 / 3 · Hold ▲ to climb. Release it to descend. You cannot crash in training.', '2 / 3 · Fly into the orange petrol drum. Use ◀ to slow down.', '3 / 3 · Approach an island and tap LAND. The pilot lines up the runway for you.', 'Training complete! Pause and finish training when you are ready.'];
+  el.textContent=steps[G.tutorialStep];
+}
+function showPanel(title,body){
+  document.getElementById('panelBody').innerHTML='<div class="panel-head"><h2>'+title+'</h2><button class="minor" id="panelClose">Back</button></div>'+body;
+  document.getElementById('panel').classList.remove('hide');
+  document.getElementById('panelClose').onclick=()=>{ document.getElementById('panel').classList.add('hide'); if(state==='paused') showPause(); else if(state==='start') showStart(); };
+  document.getElementById('panelClose').focus();
+}
+function showSettings(){
+  const o=SAVE.settings;
+  showPanel('Flight settings','<div class="settings-grid">'+
+    [['sound','Sound'],['haptics','Haptics'],['reducedMotion','Reduced motion']].map(([id,name])=>'<label class="setting">'+name+'<input type="checkbox" data-setting="'+id+'" '+(o[id]?'checked':'')+'></label>').join('')+
+    '<label class="setting">Control size<input aria-label="Control size" type="range" min="0.8" max="1.25" step="0.05" value="'+o.controlSize+'" data-setting="controlSize"></label>'+
+    '<label class="setting">Control height<input aria-label="Control height" type="range" min="8" max="64" step="4" value="'+o.controlHeight+'" data-setting="controlHeight"></label>'+
+    '<label class="setting">Climb button<select data-setting="handedness"><option value="right" '+(o.handedness==='right'?'selected':'')+'>Right thumb</option><option value="left" '+(o.handedness==='left'?'selected':'')+'>Left thumb</option></select></label></div>'+
+    '<div class="control-preview" id="controlPreview"></div><p class="small-note">Reduced motion removes camera shake, decorative bobbing and animated scenery. Flight physics stay the same.</p>');
+  const preview=()=>{document.getElementById('controlPreview').textContent='Controls: '+Math.round(SAVE.settings.controlSize*100)+'% · '+SAVE.settings.controlHeight+'px from bottom · climb on '+SAVE.settings.handedness;}; preview();
+  document.querySelectorAll('[data-setting]').forEach(el=>el.addEventListener('input',()=>{
+    const key=el.dataset.setting;
+    o[key]=el.type==='checkbox'?el.checked:el.type==='range'?Number(el.value):el.value;
+    applySettings(); persist(); preview();
+    if(key==='sound'&&!o.sound&&AC) AC.suspend().catch(()=>{});
+  }));
+}
+function showLogbook(){
+  const badges=[['ace','Runway ace','10 landings'],['courier','Island courier','5 deliveries'],['acrobat','Ring master','30 rings'],['explorer','Explorer','20 islands'],['astronaut','Sky pioneer','Reach the stratosphere']];
+  const days=Object.keys(SAVE.badges).filter(k=>k.startsWith('daily-')).length;
+  showPanel('Pilot’s logbook','<p class="small-note">'+Object.keys(SAVE.discoveries).length+' places recorded · '+days+' daily mission badges</p><h3>Landmarks</h3><div class="log-grid">'+LANDMARKS.map(l=>'<div class="log-entry '+(SAVE.landmarks[l.id]?'':'locked')+'"><span class="landmark-icon">'+(SAVE.landmarks[l.id]?l.icon:'◼')+'</span><strong>'+(SAVE.landmarks[l.id]?l.name:'Undiscovered')+'</strong><br>'+l.hint+'</div>').join('')+'</div><h3>Flight achievements</h3><div class="log-grid">'+badges.map(([id,name,hint])=>'<div class="log-entry '+(SAVE.badges[id]?'':'locked')+'"><strong>'+(SAVE.badges[id]?'★ ':'☆ ')+name+'</strong><br>'+hint+'</div>').join('')+'</div><h3>Recent discoveries</h3><div class="log-grid">'+(Object.entries(SAVE.discoveries).reverse().slice(0,24).map(([name,d])=>'<div class="log-entry"><strong>'+esc(name)+'</strong><br>'+esc((THEMES.find(t=>t.id===d.theme)||THEMES[0]).name)+'<br>'+esc(d.day)+'</div>').join('')||'<p>Your first island is waiting. Take off to start your collection.</p>')+'</div>');
+}
+function clearInput(){
+  for(const set of Object.values(touchPointers)) set.clear(); keyboardKeys.clear();
+  input.up=input.left=input.right=false;
+  document.querySelectorAll('.rb').forEach(b=>b.classList.remove('on'));
+}
+function pauseFlight(){
+  if(!['play','landing','landed','countdown'].includes(state)) return;
+  if(state!=='countdown') pausedFrom=state;
+  state='paused'; resumeAt=0; clearInput();
+  if(AC) AC.suspend().catch(()=>{});
+  showPause();
+}
+function showPause(){
+  showPanel('Flight paused','<p class="small-note">'+(G.mode==='daily'?'Daily Race · '+Math.ceil(Math.max(0,DAILY_SECONDS-G.runT))+' seconds left':G.mode==='tutorial'?'Flight school':'Free Flight')+'</p><div class="flight-choice"><button id="resumeBtn">Resume flight</button><button id="pauseSettings">Settings</button><button id="endFlight">'+(G.mode==='tutorial'?'Finish training':'Finish flight')+'</button></div>');
+  document.getElementById('panelClose').textContent='Resume';
+  document.getElementById('panelClose').onclick=resumeFlight;
+  document.getElementById('resumeBtn').onclick=resumeFlight;
+  document.getElementById('pauseSettings').onclick=showSettings;
+  document.getElementById('endFlight').onclick=()=>{
+    document.getElementById('panel').classList.add('hide');
+    if(G.mode==='tutorial'){ flightMode='free'; showStart(); }
+    else { G.reason='Flight complete'; gameOver(); }
+  };
+}
+function resumeFlight(){
+  if(state!=='paused') return;
+  if(document.hidden) return;
+  unlockAudio(); clearInput(); state='countdown'; resumeAt=performance.now()+3000;
+  document.getElementById('panelBody').innerHTML='<div style="text-align:center"><h2>Ready to fly</h2><p id="countdown" style="font-size:48px;margin:10px" aria-live="polite">3</p></div>';
+  last=performance.now(); accumulator=0;
+}
 
 // ---------- world ----------
 const G = {
@@ -431,6 +692,13 @@ function loadBest(){
         SAVE.plane = d.plane || 'bluebird'; SAVE.theme = d.theme || 'emerald';
         SAVE.codes = d.codes || {}; SAVE.god = !!d.god;
         SAVE.name = typeof d.name === 'string' ? d.name : ''; SAVE.pid = typeof d.pid === 'string' ? d.pid : '';
+        SAVE.settings = Object.assign({}, SETTINGS, d.settings || {});
+        SAVE.settings.controlSize = clamp(Number(SAVE.settings.controlSize)||1, .8, 1.25);
+        SAVE.settings.controlHeight = clamp(Number(SAVE.settings.controlHeight)||24, 8, 64);
+        SAVE.tutorial = !!d.tutorial;
+        for(const key of ['daily','discoveries','landmarks','badges','stats','ghosts','dailyBest']) {
+          if(d[key] && typeof d[key] === 'object' && !Array.isArray(d[key])) SAVE[key] = d[key];
+        }
       }
     } else {
       const old = localStorage.getItem('skyIslandsBest');
@@ -439,6 +707,7 @@ function loadBest(){
   }catch(e){}
   if(!SAVE.pid){ SAVE.pid = newPlayerId(); persist(); }
   G.best = SAVE.best;
+  applySettings();
   applyEquip();
 }
 function saveBest(){ SAVE.best = G.best; persist(); }
@@ -468,18 +737,8 @@ async function api(path, body){
 }
 function esc(t){ return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function boardHTML(res){
-  const d = res.daily;                              // today's course, if the server knows it
-  const list = d ? d.top : res.top;
-  const rows = (list || []).slice(0, 5).map(e =>
-    '<tr' + (e.you ? ' class="you"' : '') + '><td class="n">' + e.rank + '</td><td>' + esc(e.name) + '</td><td class="s">' + e.score + '</td></tr>').join('');
-  const myRank = d ? d.rank : res.rank;
-  const myScore = d ? d.best : res.best;
-  const mine = myRank > 5 ? '<tr class="you"><td class="n">' + myRank + '</td><td>' + esc(SAVE.name) + '</td><td class="s">' + myScore + '</td></tr>' : '';
-  const line = d
-    ? 'Today\'s race: ' + myRank + ' of ' + d.players + ' · All-time: ' + res.rank + ' of ' + res.players
-    : 'Rank ' + res.rank + ' of ' + res.players + ' pilots';
-  return '<table>' + rows + mine + '</table>' +
-    '<div class="msg">' + (res.improved ? 'New personal best · ' : '') + line + '</div>';
+  const rows=(res.top||[]).slice(0,5).map(e=>'<tr'+(e.you?' class="you"':'')+'><td class="n">'+e.rank+'</td><td>'+esc(e.name)+'</td><td class="s">'+e.score+'</td></tr>').join('');
+  return '<table>'+rows+'</table><div class="msg">'+(res.improved?'New daily best · ':'')+'Today: '+res.rank+' of '+res.players+' pilots · '+res.best+' gold</div>';
 }
 function mountLeaderboard(run){
   const lb = document.getElementById('lb'); if(!lb) return;
@@ -488,10 +747,11 @@ function mountLeaderboard(run){
     SAVE.name = name; persist();
     lb.innerHTML = '<div class="msg">Posting…</div>';
     try{
-      const res = await api('/api/v1/scores', { player_id:SAVE.pid, name, score:run.score, islands:run.islands, landings:run.landings, km:run.km, course:run.course, track:run.track });
+      const res = await api('/api/v2/scores', {player_id:SAVE.pid,name,...run});
       lb.innerHTML = boardHTML(res);
     }catch(e){
-      lb.innerHTML = '<div class="msg">Leaderboard unavailable right now</div>';
+      lb.innerHTML = '<div class="msg">Score saved on this device. Online posting unavailable.</div><button id="lbRetry">Try again</button>';
+      document.getElementById('lbRetry').onclick=()=>mountLeaderboard(run);
     }
   };
   lb.innerHTML =
@@ -515,6 +775,9 @@ function makeIsland(x, seed){
     h = Math.max(TILE, Math.round(h/TILE)*TILE);
     heights.push(h);
   }
+  // A guaranteed six-tile airstrip gives every island a delivery stop.
+  const mid = Math.floor(tiles/2), stripH = heights[mid];
+  for(let k=mid-3;k<=mid+3;k++) heights[k] = stripH;
   // flat landing strip: the longest run of level ground
   let strip = null, bi = -1, bl = 0, ci = 1, cl = 1;
   for(let k=2;k<tiles-1;k++){
@@ -560,7 +823,11 @@ function makeIsland(x, seed){
   }
   const pierSide = r() < 0.6 ? (r()<0.5?-1:1) : 0;
   const name = ISLE_A[Math.floor(r()*ISLE_A.length)] + ' ' + ISLE_B[Math.floor(r()*ISLE_B.length)];
-  return { x, w:tiles*TILE, tiles, heights, feats, rocks, strip, pads, padT:{}, pierSide, name, found:false, landed:false, seed };
+  const decor = mulberry32(seed ^ 0x516b32);
+  const landmark = decor() < .48 ? LANDMARKS[Math.floor(decor()*LANDMARKS.length)].id : null;
+  const waterfall = decor() < .35;
+  const rings = Array.from({length:3}, (_,j) => ({x:x+60+j*90, y:seaY-peak-95-j*18, got:false, missed:false}));
+  return { x, w:tiles*TILE, tiles, heights, feats, rocks, strip, pads, padT:{}, pierSide, name, found:false, landed:false, seed, landmark, waterfall, rings, lowPass:false };
 }
 
 function padAt(wx){
@@ -631,7 +898,13 @@ function reset(){
   const cs = hashStr(G.course);
   G.seed = (cs & 0x7fffffff) || 1;
   G.rngI = mulberry32(cs ^ 0x1b873593); G.rngP = mulberry32(cs ^ 0x7f4a7c15); G.rngC = mulberry32(cs ^ 0x2545f491);
-  G.runT = 0; G.recT = 0; G.rec = []; G.ghosts = [];
+  G.runT = 0; G.recT = 0; G.rec = [0, Math.round(altOf(G.jetY)*1000)/1000]; G.ghosts = [];
+  G.mode = flightMode; G.assisted = flightMode === 'tutorial' || (flightMode === 'free' && SAVE.god);
+  G.combo = 0; G.comboT = 0; G.rings = 0; G.deliveries = 0; G.parcel = null; G.rewardGold = 0;
+  G.tutorialStep = 0; G.tutorialClimb = 0; G.exhaust = 0; G.reason = ''; G.ended = false;
+  G.ghostStatus = ''; G.rivalGap = null;
+  if(G.mode === 'daily' || G.mode === 'tutorial') PL = PLANES[0]; else applyEquip();
+  if(G.mode === 'daily') TM = THEMES[hashStr(G.course) % THEMES.length];
   ensureWorld();
 }
 
@@ -648,7 +921,7 @@ function burst(x,y,color,n){
 
 function hit(){
   if(G.invuln > 0) return;
-  if(SAVE.god){
+  if(G.assisted){
     G.vy = -8; G.invuln = 0.6; G.shake = 6;
     G.fuel = Math.max(G.fuel, 25);
     burst(jetX, G.jetY+18, '#ffe9a0', 12); blip(620,0.1,'triangle',0.04); haptic('LIGHT');
@@ -659,6 +932,7 @@ function hit(){
     burst(jetX, G.jetY+18, '#bfe9ff', 14); blip(520,0.12,'triangle',0.05); haptic('LIGHT');
     return;
   }
+  G.combo = 0; G.comboT = 0;
   G.health--; G.invuln = 1.4; G.shake = 16; G.vy = -7.5;
   G.fx.speed = 0;
   G.ranDry = G.fuel <= 0;
@@ -676,7 +950,10 @@ function collect(p){
   if(t.id==='shield') G.fx.shield = 9;
   if(t.id==='repair') G.health = Math.min(G.maxHealth, G.health+1);
   if(t.id==='gold') G.gold += 250;
-  if(t.id==='fuel'){ G.fuel = Math.min(G.maxFuel, G.fuel + 50); G.dry = false; }
+  if(t.id==='fuel'){
+    G.fuel = Math.min(G.maxFuel, G.fuel + 50); G.dry = false; progressEvent('fuel');
+    if(G.mode === 'tutorial' && G.tutorialStep === 1) G.tutorialStep = 2;
+  }
   G.gold += 50;
   G.banner = { life:1.5, name:t.name, sub:t.sub, color:t.color };
   burst(p.x - G.scroll, p.y, t.color, 16);
@@ -685,11 +962,14 @@ function collect(p){
 
 function commonTick(dt){
   const sec = dt/60;
+  G.exhaust=lerp(G.exhaust,G.fuel<=0||state==='landed'?0:G.fx.speed>0||input.right?52:24,.12*dt);
   G.runT += sec; G.recT += sec;
-  if(G.recT >= 0.1){
+  if(G.recT >= 0.1 - 1e-9){
     G.recT -= 0.1;
     if(G.rec.length < 12000) G.rec.push(Math.round(G.scroll), Math.round(altOf(G.jetY)*1000)/1000);
   }
+  if(G.comboT > 0) G.comboT -= sec; else G.combo = 0;
+  if(G.mode === 'daily' && G.runT >= DAILY_SECONDS && !G.ended){ G.reason = 'Race complete'; gameOver(); }
   const camTarget = clamp(G.jetY - H*0.52, skyTop, 0);
   G.camY = lerp(G.camY, camTarget, 0.09*dt);
   for(const c of G.clouds) if(c.squash > 0) c.squash = Math.max(0, c.squash - 3.2*sec);
@@ -723,17 +1003,21 @@ function beginLanding(){
   if(!z) return;
   z.targetX = clamp(z.x0 + (z.x1 - z.x0)*0.55, z.x0 + 30, z.x1 - 28);
   G.land = z; state = 'landing';
-  input.up = input.left = input.right = false;
-  document.querySelectorAll('.rb').forEach(b => b.classList.remove('on'));
+  clearInput();
   blip(330,0.12,'triangle',0.04);
 }
 
 function touchdown(){
   state = 'landed';
   G.fuel = G.maxFuel; G.dry = false; G.vy = 0; G.tilt = 0;
-  G.gold += 150; G.landings++;
-  if(G.land && !G.land.is.landed){ G.land.is.landed = true; }
-  G.banner = { life:1.6, name:'Refuelled', sub:'Tanks full · +150 gold', color:'#ffb648' };
+  G.landings++;
+  if(G.land && !G.land.is.landed){
+    G.land.is.landed = true; G.gold += 150; progressEvent('landings');
+    discoverIsland(G.land.is);
+    handleDelivery(G.land.is);
+  }
+  if(G.mode === 'tutorial') { G.tutorialStep = 3; SAVE.tutorial = true; persist(); }
+  if(!G.banner || !G.parcel) G.banner = { life:1.6, name:'Refuelled', sub:'Tanks full · ready to fly', color:'#ffb648' };
   burst(jetX, G.jetY + 16, '#e8e2cf', 14);
   blip(620,0.12,'triangle',0.05); setTimeout(()=>blip(880,0.14,'triangle',0.045), 110); haptic('LIGHT');
 }
@@ -803,7 +1087,7 @@ function update(dt){
   // altitude: 0 at the sea, 1 at the top of the sky
   const alt = clamp((seaY - G.jetY) / (seaY - skyTop), 0, 1);
   G.gold += vx * dt * 0.02 * 2.2 * alt;   // thin-air bonus on top of the usual trickle
-  if(alt > 0.62 && G.highBest < 0.62){ addFloat('Stratosphere! Gold pays double up here', '#bfe9ff'); }
+  if(alt > 0.62 && G.highBest < 0.62){ addFloat('Stratosphere! Gold pays double up here', '#bfe9ff'); progressEvent('high'); }
   if(alt > G.highBest) G.highBest = alt;
 
   // bounce clouds
@@ -814,7 +1098,7 @@ function update(dt){
          G.jetY + 14 > surf && G.jetY + 14 < surf + 30 + G.vy*2){
         const power = 12.5 + 8*alt;
         G.vy = -power; G.jetY = surf - 16; c.squash = 1;
-        G.gold += 15;
+        G.gold += 15; trick('Cloud bounce', 15); progressEvent('bounces');
         burst(jetX, G.jetY + 26, '#ffffff', 8);
         blip(520 + 420*alt, 0.1, 'sine', 0.045); haptic('LIGHT');
         break;
@@ -824,7 +1108,9 @@ function update(dt){
   G.tilt = lerp(G.tilt, clamp(G.vy*0.05, -0.42, 0.5), 0.2*dt);
 
   commonTick(dt);
+  if(G.ended) return;
   ensureWorld();
+  updateActivities(dt);
 
   // pickups
   const wx = G.scroll + jetX;
@@ -837,7 +1123,7 @@ function update(dt){
   // discovery
   for(const is of G.islands){
     if(!is.found && wx > is.x + is.w*0.5){
-      is.found = true; G.found++; G.gold += 100;
+      discoverIsland(is);
       addFloat(is.name + ' found!', '#ffe9a8');
       blip(660,0.1,'triangle',0.04);
     }
@@ -914,7 +1200,8 @@ function cloudShape(){
 }
 function drawCloud(x,y,s,a){
   ctx.save(); ctx.globalAlpha = a; ctx.translate(x,y); ctx.scale(s,s);
-  ctx.fillStyle = TM.cloud; cloudShape(); ctx.fill();
+  const shade=ctx.createLinearGradient(0,-50,0,3);shade.addColorStop(0,TM.cloud);shade.addColorStop(1,'rgba(150,187,215,.72)');
+  ctx.fillStyle=shade;cloudShape();ctx.fill();
   ctx.strokeStyle = TM.cloudLine; ctx.lineWidth = 3; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(-6,-6); ctx.quadraticCurveTo(8,4,24,-6); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(30,-4); ctx.quadraticCurveTo(40,2,50,-4); ctx.stroke();
@@ -922,12 +1209,12 @@ function drawCloud(x,y,s,a){
 }
 const cloudLayers = [
   { p:0.10, n:3, s:1.1,  a:0.22, ys:[-1.00,-0.35] },  // wisps in the thin air
-  { p:0.16, n:7, s:1.25, a:0.50, ys:[0.10,0.30] },
-  { p:0.34, n:6, s:1.7,  a:0.82, ys:[0.16,0.50] },
-  { p:0.62, n:5, s:2.2,  a:0.95, ys:[0.30,0.66] }
+  { p:0.16, n:4, s:1.1, a:0.30, ys:[0.10,0.30] },
+  { p:0.34, n:3, s:1.3, a:0.42, ys:[0.16,0.50] },
+  { p:0.62, n:3, s:1.1, a:0.42, ys:[0.30,0.66] }
 ];
 function drawClouds(front){
-  const layers = front ? [{p:1.15,n:3,s:2.9,a:0.5,ys:[0.55,0.95]}] : cloudLayers;
+  const layers = front ? [{p:1.15,n:2,s:1.35,a:0.16,ys:[0.65,0.95]}] : cloudLayers;
   for(const L of layers){
     const span = W + 420;
     const off = (G.scroll * L.p) % span;
@@ -937,7 +1224,9 @@ function drawClouds(front){
       let x = base - off; if(x < -220) x += span;
       const t = (Math.sin(seed*2.3)*0.5+0.5);
       const y = H*lerp(L.ys[0], L.ys[1], t);
-      drawCloud(x, y, L.s*(0.8+0.4*t), L.a);
+      const distance=Math.hypot((x-jetX)*.7,y-G.jetY);
+      const fade=front?clamp(distance/230,.08,1):1;
+      drawCloud(x, y, L.s*(0.8+0.4*t), L.a*fade);
     }
   }
 }
@@ -945,8 +1234,8 @@ function drawClouds(front){
 function drawBounceCloud(c){
   const x = c.x - G.scroll;
   if(x < -220 || x > W + 220) return;
-  const q = c.squash;
-  const bob = Math.sin(G.t*0.03 + c.phase)*4;
+  const q = SAVE.settings.reducedMotion ? 0 : c.squash;
+  const bob = SAVE.settings.reducedMotion ? 0 : Math.sin(G.t*0.03 + c.phase)*4;
   ctx.save();
   ctx.translate(x, c.y + bob);
   ctx.scale(c.s * (1 + q*0.22), c.s * (1 - q*0.45));
@@ -972,6 +1261,9 @@ function drawSea(){
   ctx.fillStyle = TM.foam;
   ctx.fillRect(0,seaY,W,3);
   ctx.strokeStyle = TM.wave; ctx.lineWidth = 3; ctx.lineCap='round';
+  const shimmer=SAVE.settings.reducedMotion?0:Math.sin(G.t*.025)*12;
+  ctx.fillStyle='rgba(255,236,179,.10)';
+  for(let j=0;j<5;j++)ctx.fillRect(W*.65-30-j*8+shimmer,seaY+10+j*12,60+j*16,3);
   const off = G.scroll % 120;
   for(let row=0; row<3; row++){
     const yy = seaY + 22 + row*30;
@@ -983,47 +1275,158 @@ function drawSea(){
   }
 }
 
-function drawIsland(is){
-  const sx = is.x - G.scroll;
-  if(sx > W + 40 || sx + is.w < -40) return;
+function drawIslandBase(is,c,th){
+  const sx=60,baseY=300;
   // pier
   if(is.pierSide !== 0){
     const px = is.pierSide < 0 ? sx - 46 : sx + is.w + 6;
-    ctx.fillStyle = TM.pier;
-    ctx.fillRect(px, seaY - 6, 42, 7);
-    ctx.fillStyle = TM.pier2;
-    for(let i=0;i<4;i++) ctx.fillRect(px + 4 + i*11, seaY + 1, 4, 14);
+    c.fillStyle = th.pier;
+    c.fillRect(px, baseY - 6, 42, 7);
+    c.fillStyle = th.pier2;
+    for(let i=0;i<4;i++) c.fillRect(px + 4 + i*11, baseY + 1, 4, 14);
   }
   for(let i=0;i<is.tiles;i++){
-    const h = is.heights[i], x = sx + i*TILE, top = seaY - h;
+    const h = is.heights[i], x = sx + i*TILE, top = baseY - h;
     if(is.rocks && is.rocks[i]){
       // rock spire — solid obstacle
-      ctx.fillStyle = TM.rock; ctx.fillRect(x, top, TILE+0.5, h + 8);
-      ctx.fillStyle = TM.rockTop; ctx.fillRect(x, top, TILE+0.5, 7);
-      ctx.fillStyle = TM.rockShade; ctx.fillRect(x + TILE - 5, top + 7, 5, h - 7);
-      ctx.fillStyle = TM.sand; ctx.fillRect(x, seaY - 12, TILE+0.5, 20);
+      c.fillStyle = th.rock; c.fillRect(x, top, TILE+0.5, h + 8);
+      c.fillStyle = th.rockTop; c.fillRect(x, top, TILE+0.5, 7);
+      c.fillStyle = th.rockShade; c.fillRect(x + TILE - 5, top + 7, 5, h - 7);
+      c.fillStyle = th.sand; c.fillRect(x, baseY - 12, TILE+0.5, 20);
       continue;
     }
     // body / grass
-    ctx.fillStyle = TM.grass; ctx.fillRect(x, top, TILE+0.5, h + 8);
+    c.fillStyle = th.grass; c.fillRect(x, top, TILE+0.5, h + 8);
     // sand base
-    ctx.fillStyle = TM.sand; ctx.fillRect(x, seaY - 12, TILE+0.5, 20);
+    c.fillStyle = th.sand; c.fillRect(x, baseY - 12, TILE+0.5, 20);
     // grass cap + cliff shading
-    ctx.fillStyle = TM.grassTop; ctx.fillRect(x, top, TILE+0.5, 5);
+    c.fillStyle = th.grassTop; c.fillRect(x, top, TILE+0.5, 5);
     const nb = is.heights[i+1];
     if(nb !== undefined && nb < h - TILE*0.5){
-      ctx.fillStyle = TM.cliff; ctx.fillRect(x + TILE - 4, top + 5, 4, h - (nb) - 5);
+      c.fillStyle = th.cliff; c.fillRect(x + TILE - 4, top + 5, 4, h - (nb) - 5);
     }
   }
   // runway
   if(is.strip){
-    const rx = sx + is.strip.i0*TILE, rw = (is.strip.i1 - is.strip.i0 + 1)*TILE, ry = seaY - is.strip.h;
-    ctx.fillStyle = TM.run; ctx.fillRect(rx, ry - 1, rw, 9);
-    ctx.fillStyle = TM.runMark;
-    for(let k=8;k<rw-14;k+=20) ctx.fillRect(rx + k, ry + 3, 11, 2);
-    ctx.fillStyle = '#ffd54a';
-    ctx.fillRect(rx, ry - 4, 4, 12); ctx.fillRect(rx + rw - 4, ry - 4, 4, 12);
+    const rx = sx + is.strip.i0*TILE, rw = (is.strip.i1 - is.strip.i0 + 1)*TILE, ry = baseY - is.strip.h;
+    c.fillStyle = th.run; c.fillRect(rx, ry - 1, rw, 9);
+    c.fillStyle = th.runMark;
+    for(let k=8;k<rw-14;k+=20) c.fillRect(rx + k, ry + 3, 11, 2);
+    c.fillStyle = '#ffd54a';
+    c.fillRect(rx, ry - 4, 4, 12); c.fillRect(rx + rw - 4, ry - 4, 4, 12);
   }
+  // features
+  for(const f of is.feats){
+    const x = sx + f.i*TILE, gy = baseY - is.heights[f.i];
+    if(f.k === 'tree'){
+      const s = f.s;
+      c.fillStyle = th.trunk; c.fillRect(x+5, gy-8*s, 4, 9*s);
+      c.fillStyle = th.leaf; c.fillRect(x-1, gy-20*s, 16, 9*s);
+      c.fillRect(x+2, gy-27*s, 10, 8*s);
+      c.fillStyle = th.leaf2; c.fillRect(x+2, gy-19*s, 8, 4*s);
+    } else if(f.k === 'mount'){
+      const s = f.s, hgt = 26*s, wdt = 30*s;
+      c.fillStyle = th.mount;
+      c.beginPath(); c.moveTo(x-wdt/3, gy); c.lineTo(x+wdt/2, gy-hgt); c.lineTo(x+wdt*1.05, gy); c.closePath(); c.fill();
+      c.fillStyle = th.mount2;
+      c.beginPath(); c.moveTo(x+wdt/2, gy-hgt); c.lineTo(x+wdt*1.05, gy); c.lineTo(x+wdt*0.55, gy); c.closePath(); c.fill();
+      c.fillStyle = th.cap;
+      c.beginPath(); c.moveTo(x+wdt/2, gy-hgt); c.lineTo(x+wdt*0.32, gy-hgt*0.68); c.lineTo(x+wdt*0.7, gy-hgt*0.68); c.closePath(); c.fill();
+    } else if(f.k === 'field'){
+      const w = f.w*TILE;
+      c.fillStyle = th.field; c.fillRect(x, gy-9, w, 9);
+      c.fillStyle = th.field2;
+      for(let k=0;k<w;k+=6) c.fillRect(x+k, gy-9, 2, 9);
+    } else if(f.k === 'hut'){
+      c.fillStyle = th.hut; c.fillRect(x, gy-14, 18, 14);
+      c.fillStyle = th.roof;
+      c.beginPath(); c.moveTo(x-3, gy-14); c.lineTo(x+9, gy-25); c.lineTo(x+21, gy-14); c.closePath(); c.fill();
+      c.fillStyle = th.door; c.fillRect(x+6, gy-8, 6, 8);
+    }
+  }
+  // Layered cliff faces and sparse surface marks, cached with the island.
+  const rand=mulberry32(is.seed^0x72345);
+  for(let i=0;i<is.tiles;i++){
+    if(is.rocks[i]) continue;
+    const x=sx+i*TILE, top=baseY-is.heights[i];
+    const cliffTop=top+9, cliffH=Math.max(0,baseY-13-cliffTop);
+    const earth=c.createLinearGradient(x,cliffTop,x,baseY);
+    earth.addColorStop(0,th.cliff);earth.addColorStop(1,darken(th.cliff,.32));
+    c.fillStyle=earth;c.fillRect(x,cliffTop,TILE+.5,cliffH);
+    c.fillStyle='rgba(255,255,255,.12)';
+    for(let y=cliffTop+12;y<baseY-20;y+=18)c.fillRect(x+1,y,TILE-2,2);
+    c.fillStyle='rgba(16,34,46,.16)';c.fillRect(x+3+rand()*5,cliffTop+rand()*Math.max(1,cliffH-7),3,3);
+    c.fillStyle=th.grass;c.fillRect(x,top+3,TILE+.5,6+rand()*5);
+    c.fillStyle=th.grassTop;c.fillRect(x,top,TILE+.5,4);
+  }
+  // Repaint the clear runway edge above the turf detail.
+  if(is.strip){const x=sx+is.strip.i0*TILE,y=baseY-is.strip.h,w=(is.strip.i1-is.strip.i0+1)*TILE;
+    c.fillStyle=th.run;c.fillRect(x,y-2,w,9);c.fillStyle=th.runMark;for(let k=9;k<w-10;k+=20)c.fillRect(x+k,y+2,10,2);
+    c.fillStyle='#ffd98a';c.fillRect(x,y-4,3,11);c.fillRect(x+w-3,y-4,3,11);
+  }
+  if(is.waterfall){
+    const x=sx+TILE,top=baseY-is.heights[1]+8;
+    c.fillStyle=th.id==='volcano'?'#fa8a41':'#a4e5ed';c.fillRect(x,top,9,baseY-top+10);
+    c.fillStyle=th.id==='volcano'?'#ffd888':'rgba(255,255,255,.65)';c.fillRect(x+2,top,3,baseY-top+10);
+  }
+  // Biome details add a different landscape, beyond the colour palette.
+  for(const f of is.feats.filter(f=>f.k==='tree')){
+    const x=sx+f.i*TILE,y=baseY-is.heights[f.i];
+    if(th.id==='sunset'){
+      c.strokeStyle=th.trunk;c.lineWidth=4;c.beginPath();c.moveTo(x+7,y);c.quadraticCurveTo(x+12,y-18,x+4,y-38);c.stroke();
+      c.strokeStyle=th.leaf;c.lineWidth=5;
+      for(let j=-2;j<=2;j++){c.beginPath();c.moveTo(x+4,y-38);c.quadraticCurveTo(x+j*11,y-49,x+j*14,y-28);c.stroke();}
+    }else if(th.id==='frost'){
+      for(let j=0;j<3;j++){c.fillStyle=j===0?'#eafaff':th.leaf;c.beginPath();c.moveTo(x-7-j*2,y-7-j*9);c.lineTo(x+7,y-36-j*5);c.lineTo(x+21+j*2,y-7-j*9);c.fill();c.fillStyle='#edfaff';c.fillRect(x-4,y-9-j*9,20,3);}
+    }else if(th.id==='volcano'){
+      c.fillStyle='#2b2530';c.beginPath();c.moveTo(x-5,y);c.lineTo(x+3,y-20);c.lineTo(x+13,y-20);c.lineTo(x+23,y);c.fill();c.fillStyle='#ffbf62';c.fillRect(x+3,y-20,10,4);
+    }else if(th.id==='neon'){
+      c.strokeStyle='#5064a7';c.lineWidth=3;c.beginPath();c.moveTo(x+7,y);c.lineTo(x+7,y-33);c.stroke();c.fillStyle='#8dffec';c.beginPath();c.arc(x+7,y-35,5,0,Math.PI*2);c.fill();
+    }
+  }
+  if(th.id==='sunset'||th.id==='frost'){
+    for(let j=0;j<5;j++){const x=sx+18+j*is.w/5;
+      c.strokeStyle=th.id==='frost'?'#e3f9ff':'#f9a7a5';c.lineWidth=4;c.beginPath();c.moveTo(x,baseY+10);c.lineTo(x-3,baseY-1);c.lineTo(x+5,baseY-7);c.stroke();}
+  }
+  if(th.id==='neon') for(const f of is.feats.filter(f=>f.k==='hut')){
+    const x=sx+f.i*TILE,y=baseY-is.heights[f.i];c.fillStyle='#ffd99d';c.fillRect(x+2,y-11,4,5);c.fillRect(x+12,y-11,4,5);
+  }
+  const lx=sx+2*TILE,ly=baseY-is.heights[2];
+  if(is.landmark){
+    c.save();c.translate(lx,ly);
+    if(is.landmark==='lighthouse'){
+      c.fillStyle='#eaf4ee';c.fillRect(-4,-49,16,49);c.fillStyle='#d36b50';c.fillRect(-4,-36,16,9);c.fillRect(-4,-17,16,8);c.fillStyle='#f9df83';c.fillRect(-6,-57,20,9);c.fillStyle='#273d56';c.fillRect(-8,-61,24,4);
+    }else if(is.landmark==='windmill'){
+      c.fillStyle='#d9cbae';c.beginPath();c.moveTo(-8,0);c.lineTo(-3,-40);c.lineTo(13,-40);c.lineTo(19,0);c.fill();c.fillStyle='#994e3a';c.beginPath();c.moveTo(-7,-40);c.lineTo(5,-52);c.lineTo(17,-40);c.fill();
+    }else if(is.landmark==='ruins'){
+      c.strokeStyle='#b9c9be';c.lineWidth=9;c.beginPath();c.moveTo(-10,0);c.lineTo(-10,-25);c.quadraticCurveTo(6,-50,23,-25);c.lineTo(23,0);c.stroke();c.strokeStyle='#5d887b';c.lineWidth=3;c.beginPath();c.moveTo(-10,-8);c.lineTo(-10,-22);c.stroke();
+    }else if(is.landmark==='observatory'){
+      c.fillStyle='#d3dae3';c.fillRect(-15,-20,36,20);c.fillStyle='#7ab7d4';c.beginPath();c.arc(3,-20,18,Math.PI,Math.PI*2);c.fill();c.strokeStyle='#e4f4ff';c.lineWidth=6;c.beginPath();c.moveTo(3,-26);c.lineTo(20,-42);c.stroke();
+    }else{
+      c.fillStyle='#263b69';c.fillRect(-8,-8,23,8);c.fillStyle='#9af4e2';c.beginPath();c.moveTo(3,-48);c.lineTo(13,-26);c.lineTo(3,-9);c.lineTo(-7,-26);c.closePath();c.fill();c.strokeStyle='#e1fffb';c.lineWidth=2;c.stroke();
+    }
+    c.restore();
+  }
+  // foam at the waterline
+  c.fillStyle = th.foam;
+  c.fillRect(sx-6, baseY+4, is.w+12, 4);
+}
+
+function drawIsland(is){
+  const sx=is.x-G.scroll;
+  if(sx>W+80||sx+is.w<-80) return;
+  const key=TM.id+':'+is.seed+':'+is.heights.join(',');
+  let tile=sceneryCache.get(key);
+  if(!tile){
+    tile=document.createElement('canvas'); const scale=Math.min(2,DPR*ZOOM);
+    tile.width=Math.ceil((is.w+120)*scale);tile.height=Math.ceil(350*scale);
+    const c=tile.getContext('2d');c.scale(scale,scale);drawIslandBase(is,c,TM);
+    sceneryCache.set(key,tile);if(sceneryCache.size>48)sceneryCache.delete(sceneryCache.keys().next().value);
+  }
+  ctx.drawImage(tile,sx-60,seaY-300,is.w+120,350);
+  // A small reflection anchors each island in the water.
+  ctx.save();ctx.beginPath();ctx.rect(sx-60,seaY+12,is.w+120,55);ctx.clip();ctx.globalAlpha=.13;
+  ctx.translate(sx-60,seaY+67);ctx.scale(1,-.18);ctx.drawImage(tile,0,0,is.w+120,350);ctx.restore();
   // jump pads
   for(const k of is.pads){
     const px = sx + k*TILE, py = seaY - is.heights[k];
@@ -1042,38 +1445,20 @@ function drawIsland(is){
     ctx.fillStyle = 'rgba(255,214,90,' + (0.25 + q*0.6) + ')';
     ctx.beginPath(); ctx.moveTo(px + TILE, ty - 8 - q*10); ctx.lineTo(px + TILE + 7, ty - 2); ctx.lineTo(px + TILE - 7, ty - 2); ctx.closePath(); ctx.fill();
   }
-  // features
-  for(const f of is.feats){
-    const x = sx + f.i*TILE, gy = seaY - is.heights[f.i];
-    if(f.k === 'tree'){
-      const s = f.s;
-      ctx.fillStyle = TM.trunk; ctx.fillRect(x+5, gy-8*s, 4, 9*s);
-      ctx.fillStyle = TM.leaf; ctx.fillRect(x-1, gy-20*s, 16, 9*s);
-      ctx.fillRect(x+2, gy-27*s, 10, 8*s);
-      ctx.fillStyle = TM.leaf2; ctx.fillRect(x+2, gy-19*s, 8, 4*s);
-    } else if(f.k === 'mount'){
-      const s = f.s, hgt = 26*s, wdt = 30*s;
-      ctx.fillStyle = TM.mount;
-      ctx.beginPath(); ctx.moveTo(x-wdt/3, gy); ctx.lineTo(x+wdt/2, gy-hgt); ctx.lineTo(x+wdt*1.05, gy); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = TM.mount2;
-      ctx.beginPath(); ctx.moveTo(x+wdt/2, gy-hgt); ctx.lineTo(x+wdt*1.05, gy); ctx.lineTo(x+wdt*0.55, gy); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = TM.cap;
-      ctx.beginPath(); ctx.moveTo(x+wdt/2, gy-hgt); ctx.lineTo(x+wdt*0.32, gy-hgt*0.68); ctx.lineTo(x+wdt*0.7, gy-hgt*0.68); ctx.closePath(); ctx.fill();
-    } else if(f.k === 'field'){
-      const w = f.w*TILE;
-      ctx.fillStyle = TM.field; ctx.fillRect(x, gy-9, w, 9);
-      ctx.fillStyle = TM.field2;
-      for(let k=0;k<w;k+=6) ctx.fillRect(x+k, gy-9, 2, 9);
-    } else if(f.k === 'hut'){
-      ctx.fillStyle = TM.hut; ctx.fillRect(x, gy-14, 18, 14);
-      ctx.fillStyle = TM.roof;
-      ctx.beginPath(); ctx.moveTo(x-3, gy-14); ctx.lineTo(x+9, gy-25); ctx.lineTo(x+21, gy-14); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = TM.door; ctx.fillRect(x+6, gy-8, 6, 8);
-    }
+
+  if(is.landmark==='windmill'){
+    ctx.save();ctx.translate(sx+2*TILE+5,seaY-is.heights[2]-34);ctx.rotate(SAVE.settings.reducedMotion?.3:G.t*.012);
+    for(let j=0;j<4;j++){ctx.rotate(Math.PI/2);ctx.fillStyle='#ecdfbb';ctx.fillRect(1,-3,24,5);ctx.fillStyle='#bd8e69';ctx.fillRect(6,-3,2,5);}ctx.restore();
   }
-  // foam at the waterline
-  ctx.fillStyle = TM.foam;
-  ctx.fillRect(sx-6, seaY+4, is.w+12, 4);
+  if(is.waterfall&&!SAVE.settings.reducedMotion){
+    const x=sx+TILE,top=seaY-is.heights[1]+8;ctx.fillStyle=TM.id==='volcano'?'#fff0bc':'#e7fcff';
+    for(let y=top+(G.t*.7)%17;y<seaY+7;y+=17)ctx.fillRect(x+2,y,4,3);
+  }
+  if(G.parcel&&G.parcel.toX===is.x){outlineText('DELIVER HERE',sx+is.w/2,seaY-is.strip.h-45,15,'#ffd98a','center');}
+  for(const r of is.rings){
+    if(r.got||r.missed)continue;
+    const x=r.x-G.scroll;ctx.save();ctx.strokeStyle='#ffe7a1';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(x,r.y,12,32,0,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#bf8439';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+  }
 }
 
 // --- glyph icons in the style of the skill sheet ---
@@ -1149,53 +1534,55 @@ function drawFlameFace(s, c){
   ctx.restore();
 }
 
-function drawPlaneShape(c, P){
-  const S = P.shape, K = P.col;
-  const N = S.nose, F = S.fin, WG = S.wing;
-  // far wing
-  c.fillStyle = K.wing2;
-  c.beginPath(); c.moveTo(-6,-6); c.lineTo(-56,-(WG+6)); c.lineTo(-34,-(WG+6)); c.lineTo(16,-4); c.closePath(); c.fill();
-  // tail fin
-  c.fillStyle = K.fin;
-  c.beginPath(); c.moveTo(-30,-6); c.lineTo(-24,F); c.lineTo(-12,F); c.lineTo(-6,-6); c.closePath(); c.fill();
-  // rear stabiliser
-  c.fillStyle = K.stab;
-  c.beginPath(); c.moveTo(-32,-14); c.lineTo(-58,-20); c.lineTo(-58,-12); c.lineTo(-30,-8); c.closePath(); c.fill();
-  // fuselage
-  c.fillStyle = K.body;
-  c.beginPath();
-  c.moveTo(-58,-8); c.lineTo(-16,-16); c.lineTo(30,-16);
-  c.quadraticCurveTo(N-12,-12,N,0);
-  c.quadraticCurveTo(N-12,12,30,16); c.lineTo(-20,15); c.lineTo(-58,8);
-  c.closePath(); c.fill();
-  // belly shade
-  c.fillStyle = 'rgba(8,16,34,.42)';
-  c.beginPath(); c.moveTo(-58,8); c.lineTo(-20,15); c.lineTo(30,16); c.quadraticCurveTo(N-16,12,N-4,3); c.lineTo(-56,4); c.closePath(); c.fill();
-  // canopy
-  c.fillStyle = K.canopy;
-  c.beginPath(); c.moveTo(14,-15); c.quadraticCurveTo(44,-19,56,-6); c.lineTo(16,-4); c.closePath(); c.fill();
-  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(26,-14); c.lineTo(20,-5); c.stroke();
-  c.beginPath(); c.moveTo(34,-14); c.lineTo(27,-5); c.stroke();
-  // near wing
-  c.fillStyle = K.wing;
-  c.beginPath(); c.moveTo(8,2); c.lineTo(-52,WG); c.lineTo(-26,WG); c.lineTo(30,6); c.closePath(); c.fill();
-  // flame emblem on the fin
-  c.save(); c.translate(-19, F + 12); drawFlameFace(0.85, c); c.restore();
+function drawPlaneShape(c, P, pose={}){
+  const K=P.col, bank=pose.bank||0, gear=pose.gear||0;
+  const racer=P.id==='scarlet', explorer=P.id==='seahawk', glider=P.id==='nightowl', delta=P.id==='goldarrow';
+  const N=racer?91:explorer?67:glider?73:delta?88:74;
+  const span=(glider?57:explorer?47:delta?43:racer?29:35)*(1-Math.abs(bank)*.25);
+  const poly=(pts,fill,stroke)=>{c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}};
+  // Wing geometry changes the silhouette, while a common light source unifies the fleet.
+  poly([[4,-5],[-(racer?66:44),-span],[-(glider?12:24),-span],[delta?42:22,-4]],K.wing2,'rgba(255,255,255,.18)');
+  poly([[-39,-8],[-30,P.shape.fin],[-17,P.shape.fin+2],[-6,-8]],K.fin);
+  poly([[-33,-9],[-65,-24],[-51,-24],[-14,-7]],K.stab);
+  if(explorer){
+    for(const y of [-23,24]){c.fillStyle=K.body;c.beginPath();c.ellipse(-10,y,29,7,0,0,Math.PI*2);c.fill();c.fillStyle='#172a35';c.beginPath();c.ellipse(14,y,5,6,0,0,Math.PI*2);c.fill();}
+  }
+  const body=c.createLinearGradient(0,-17,0,18);body.addColorStop(0,K.wing);body.addColorStop(.32,K.body);body.addColorStop(1,darken(K.body,.45));
+  c.fillStyle=body;c.beginPath();c.moveTo(-59,-8);c.lineTo(-16,-16);c.lineTo(30,-16);c.quadraticCurveTo(N-10,-12,N,0);c.quadraticCurveTo(N-15,14,30,16);c.lineTo(-24,13);c.lineTo(-59,7);c.closePath();c.fill();
+  c.strokeStyle='rgba(255,255,255,.48)';c.lineWidth=1.2;c.beginPath();c.moveTo(-36,-11);c.lineTo(28,-13);c.quadraticCurveTo(N-14,-9,N-6,-2);c.stroke();
+  c.strokeStyle='rgba(7,20,38,.36)';c.lineWidth=1;c.beginPath();c.moveTo(-22,-12);c.lineTo(-26,9);c.moveTo(6,-11);c.lineTo(2,12);c.moveTo(52,-8);c.lineTo(48,11);c.stroke();
+  // Glass canopy with a broad reflection readable at phone scale.
+  const glass=c.createLinearGradient(12,-19,45,-2);glass.addColorStop(0,'#f3fcff');glass.addColorStop(.3,K.canopy);glass.addColorStop(1,'#214664');
+  c.fillStyle=glass;c.beginPath();c.moveTo(10,-15);c.quadraticCurveTo(35,-29,54,-7);c.lineTo(12,-4);c.closePath();c.fill();
+  poly([[22,-18],[30,-18],[20,-6],[15,-6]],'rgba(255,255,255,.75)');
+  const wingEnd=glider?-4:delta?4:-24;
+  poly([[7,2],[-(racer?66:48),span],[wingEnd,span],[delta?46:31,6]],K.wing,'rgba(255,255,255,.32)');
+  // Aileron and livery stripes.
+  c.strokeStyle=K.body;c.lineWidth=2;c.beginPath();c.moveTo(-38,span-5);c.lineTo(wingEnd+2,span-5+(pose.flap||0)*3);c.stroke();
+  c.strokeStyle='rgba(255,255,255,.72)';c.lineWidth=3;c.beginPath();c.moveTo(-21,span-10);c.lineTo(-7,span-20);c.stroke();
+  if(delta) poly([[-12,12],[-26,31],[-13,31],[1,13]],'#fff3c4');
+  c.fillStyle='#15273d';c.fillRect(-62,-7,9,14);c.fillStyle='#8dabb9';c.fillRect(-63,-5,3,10);
+  c.save();c.translate(-24,P.shape.fin+13);drawFlameFace(.72,c);c.restore();
+  if(gear>0){
+    c.strokeStyle='#b7c6cc';c.lineWidth=3;
+    for(const x of [-25,40]){c.beginPath();c.moveTo(x,10);c.lineTo(x,10+13*gear);c.stroke();c.fillStyle='#122036';c.beginPath();c.ellipse(x,10+13*gear,6,4,0,0,Math.PI*2);c.fill();}
+  }
 }
 
 function drawGhosts(){
+  G.rivalGap=null;
   if(!G.ghosts.length) return;
   const i = G.runT * 10;
   for(const g of G.ghosts){
     const tr = g.track, n = tr.length / 2;
-    if(i >= n - 1) continue;                       // that pilot's run is over
+    if(i >= n - 1){G.rivalGap=(g.you?'Your best':'Rival')+' finished'; continue;}                       // that pilot's run is over
     const k = Math.floor(i), f = i - k;
     const gx = tr[2*k] + (tr[2*k+2] - tr[2*k]) * f;
     const ga = tr[2*k+1] + (tr[2*k+3] - tr[2*k+1]) * f;
     const sx = jetX + (gx - G.scroll);
     const sy = seaY - ga * (seaY - skyTop);
     const label = g.you ? 'Your best' : g.name;
+    G.rivalGap=label+' · '+(Math.abs(gx-G.scroll)/100).toFixed(1)+' km '+(gx>=G.scroll?'ahead':'behind');
     ctx.save();
     const vyOff = sy - G.camY;                     // where it sits on the visible screen
     if(sx < -80 || sx > W + 80 || vyOff < -30 || vyOff > H + 30){   // out of view: edge marker
@@ -1209,8 +1596,8 @@ function drawGhosts(){
     ctx.globalAlpha = 0.8;
     outlineText(label, sx, sy - 46, 13, '#cfe9ff', 'center');
     ctx.translate(sx, sy); ctx.rotate(clamp(vy*0.05, -0.42, 0.5));
-    ctx.globalAlpha = 0.35;
-    drawPlaneShape(ctx, PL);
+    ctx.globalAlpha = Math.hypot(sx-jetX,sy-G.jetY)<110?.10:.25;
+    drawPlaneShape(ctx, PLANES.find(p=>p.id===g.plane)||PLANES[0]);
     ctx.restore();
   }
 }
@@ -1223,8 +1610,8 @@ function drawJet(){
   if(G.invuln > 0 && Math.floor(G.t/4) % 2 === 0) ctx.globalAlpha = 0.45;
 
   // exhaust
-  const flick = 0.7 + Math.random()*0.5;
-  const len = (engineOff ? 0 : boosting ? 52 : 24) * flick;
+  const flick=SAVE.settings.reducedMotion?1:.94+.06*Math.sin(G.t*.8);
+  const len=(engineOff?0:G.exhaust)*flick;
   if(len > 0){
     const eg = ctx.createLinearGradient(-58,0,-58-len,0);
     eg.addColorStop(0, boosting ? PL.col.hot : PL.col.warm);
@@ -1233,7 +1620,7 @@ function drawJet(){
     ctx.beginPath(); ctx.moveTo(-56,-7); ctx.lineTo(-56-len,0); ctx.lineTo(-56,7); ctx.closePath(); ctx.fill();
   }
 
-  drawPlaneShape(ctx, PL);
+  drawPlaneShape(ctx, PL, {bank:G.tilt,flap:input.up?-1:1,gear:state==='landed'||state==='landing'||(state==='paused'&&pausedFrom==='landed')?1:0});
 
   // shield bubble
   if(G.fx.shield > 0){
@@ -1273,7 +1660,7 @@ function drawOffscreenJet(){
 }
 function drawHUD(){
   drawOffscreenJet();
-  const pad = 16;
+  const pad = 16 + Math.max(safeInsets.left,safeInsets.right);
   const top = safeTop() + 34;
   // health flames
   for(let i=0;i<G.maxHealth;i++){
@@ -1296,16 +1683,16 @@ function drawHUD(){
   ctx.fillStyle = 'rgba(8,18,40,.55)'; rr(pad, fy-11, fw, 22, 11); ctx.fill();
   const frac = clamp(G.fuel/G.maxFuel, 0, 1);
   const fcol = frac > 0.5 ? '#6ee86e' : frac > 0.22 ? '#ffd24a' : '#ff5f4d';
-  if(frac <= 0.22 && Math.floor(G.t/10) % 2 === 0) ctx.globalAlpha = 0.45;
+  if(!SAVE.settings.reducedMotion && frac <= 0.22 && Math.floor(G.t/10) % 2 === 0) ctx.globalAlpha = 0.45;
   ctx.fillStyle = fcol; rr(pad+3, fy-8, Math.max(0,(fw-6)*frac), 16, 8); ctx.fill();
   ctx.globalAlpha = 1;
   outlineText(G.fuel <= 0 ? 'NO PETROL' : 'PETROL', pad + 12, fy, 15, '#0b1b38');
 
-  if(SAVE.god){
+  if(G.assisted){
     outlineText('INVINCIBLE', pad, fy + 26, 15, '#ffe9a0');
   }
   // active power-ups
-  let by = fy + (SAVE.god ? 52 : 30);
+  let by = fy + (G.assisted ? 52 : 30);
   const acts = [
     ['speed', G.fx.speed, 7, '#ff5f4d', 'Speed'],
     ['lift', G.fx.lift, 9, '#ffd76b', 'Wings'],
@@ -1318,6 +1705,10 @@ function drawHUD(){
     outlineText(label, pad + 10, by, 14, '#0b1b38');
     by += 24;
   }
+  if(G.mode==='daily') outlineText(Math.ceil(Math.max(0,DAILY_SECONDS-G.runT))+'s · Daily Race',W/2,top+36,16,'#ffe9a0','center');
+  if(G.rivalGap||G.ghostStatus) outlineText(G.rivalGap||G.ghostStatus,W/2,H-56,13,'#cfe9ff','center');
+  if(G.parcel) outlineText('Parcel → '+(G.parcel.to||'next runway'),W/2,H-34,15,'#ffd98a','center');
+  if(G.combo>1&&G.comboT>0) outlineText('Combo ×'+G.combo,W-pad-8,top+86,16,'#a5f5de','right');
   // floating text
   for(const f of G.floats){
     ctx.globalAlpha = clamp(f.life,0,1);
@@ -1326,55 +1717,33 @@ function drawHUD(){
   }
 }
 
+function drawDistantIslands(){
+  ctx.save();ctx.globalAlpha=.19;ctx.fillStyle=TM.mount;
+  const span=600,off=(G.scroll*.12)%span;
+  for(let x=-span;x<W+span;x+=span){
+    const xx=x-off,yy=seaY-20;
+    ctx.beginPath();ctx.moveTo(xx,yy);ctx.quadraticCurveTo(xx+75,yy-95,xx+130,yy-40);ctx.quadraticCurveTo(xx+180,yy-100,xx+290,yy);ctx.fill();
+  }
+  ctx.restore();
+}
 function drawBanner(){
-  if(!G.banner) return;
-  const b = G.banner;
-  const t = 1.5 - b.life;
-  const pop = t < 0.18 ? (t/0.18) : 1;
-  const ease = 1 + 0.16*Math.sin(clamp(t*7,0,Math.PI));
-  const alpha = b.life < 0.3 ? b.life/0.3 : 1;
-  const s = Math.min(0.58, W/1250) * pop * ease;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(W/2, H*0.24);
-  ctx.scale(s,s);
-  ctx.transform(1,0,-0.17,1,0,0);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = "86px 'Luckiest Guy', Impact, 'Arial Black', sans-serif";
-  ctx.lineJoin = 'round';
-  const txt = 'POWER UP!';
-  ctx.strokeStyle = '#c9902a'; ctx.lineWidth = 24; ctx.strokeText(txt,0,0);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 13; ctx.strokeText(txt,0,0);
-  const g = ctx.createLinearGradient(0,-42,0,42);
-  g.addColorStop(0,'#eda033'); g.addColorStop(0.46,'#dd8228');
-  g.addColorStop(0.5,'#a31f22'); g.addColorStop(1,'#7a1418');
-  ctx.fillStyle = g; ctx.fillText(txt,0,0);
-  // arrow
-  const w = ctx.measureText(txt).width;
-  ctx.save();
-  ctx.translate(w/2 + 40, -34);
-  ctx.beginPath();
-  ctx.moveTo(-14,26); ctx.lineTo(-14,4); ctx.lineTo(-26,4); ctx.lineTo(2,-26);
-  ctx.lineTo(30,4); ctx.lineTo(18,4); ctx.lineTo(18,26); ctx.closePath();
-  ctx.strokeStyle = '#c9902a'; ctx.lineWidth = 18; ctx.stroke();
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 9; ctx.stroke();
-  ctx.fillStyle = '#a31f22'; ctx.fill();
-  ctx.restore();
-  ctx.restore();
-  // subtitle
-  ctx.save(); ctx.globalAlpha = alpha;
-  outlineText(b.name, W/2, H*0.24 + 46, 22, b.color, 'center');
-  outlineText(b.sub, W/2, H*0.24 + 70, 15, '#e9f3ff', 'center');
+  if(!G.banner||G.mode==='tutorial')return;
+  const b=G.banner,width=Math.min(370,W-340),x=(W-width)/2,y=safeTop()+88;
+  ctx.save();ctx.globalAlpha=Math.min(1,b.life/.25);ctx.fillStyle='rgba(9,28,48,.9)';rr(x,y,width,52,10);ctx.fill();
+  ctx.fillStyle=b.color;ctx.fillRect(x+8,y+10,3,31);
+  outlineText(b.name,W/2,y+18,17,b.color,'center');
+  ctx.fillStyle='#eaf4ff';ctx.font='12px system-ui,sans-serif';ctx.textAlign='center';ctx.fillText(b.sub,W/2,y+39,width-32);
   ctx.restore();
 }
 
 function render(){
   ctx.save();
-  if(G.shake > 0){
+  if(G.shake > 0 && !SAVE.settings.reducedMotion){
     ctx.translate((Math.random()-0.5)*G.shake, (Math.random()-0.5)*G.shake);
   }
   ctx.translate(0, -G.camY);
   drawSky();
+  drawDistantIslands();
   drawClouds(false);
   drawSea();
   for(const is of G.islands) drawIsland(is);
@@ -1395,17 +1764,24 @@ function render(){
 }
 
 // ---------- loop ----------
-let last = performance.now();
+let last = performance.now(), accumulator = 0;
 function frame(now){
-  const dt = clamp((now - last)/16.667, 0, 2.5) || 1;
-  last = now;
-  if(state === 'play') update(dt);
-  else if(state === 'landing') updateLanding(dt);
-  else if(state === 'landed'){ G.t += dt; commonTick(dt); }
-  else { G.t += dt; }
-  updateActionBtn();
-  render();
-  requestAnimationFrame(frame);
+  const elapsed=Math.min(.15,Math.max(0,(now-last)/1000)); last=now;
+  if(state==='countdown'){
+    const remaining=Math.ceil((resumeAt-now)/1000);
+    document.getElementById('countdown').textContent=String(Math.max(1,remaining));
+    if(now>=resumeAt&&!document.hidden){state=pausedFrom; document.getElementById('panel').classList.add('hide'); accumulator=0;}
+  } else if(['play','landing','landed'].includes(state)&&!document.hidden){
+    accumulator+=elapsed;
+    while(accumulator+1e-9>=1/60){
+      accumulator=Math.max(0,accumulator-1/60);
+      if(state==='play') update(1);
+      else if(state==='landing') updateLanding(1);
+      else if(state==='landed'){G.t+=1; commonTick(1);}
+      else {accumulator=0; break;}
+    }
+  } else { accumulator=0; }
+  updateActionBtn(); updateTutorialHint(); render(); requestAnimationFrame(frame);
 }
 
 // ---------- screens ----------
@@ -1413,56 +1789,84 @@ const screenEl = document.getElementById('screen');
 const cardEl = document.getElementById('card');
 
 function showStart(){
-  state = 'start';
-  cardEl.innerHTML =
-    '<div class="body">' +
-    '<h1>Sky Islands</h1><h2>Power Up!</h2>' +
-    '<p>Fly the jet and find islands. Petrol burns as you fly — grab petrol drums in the air to keep going.</p>' +
-    '<p>Rocks, hills and the sea all bite. You have three flames.</p>' +
-    '<p>Bounce off the red jump pads to reach the thin air, where the sparkly clouds bounce you higher and gold pays more.</p>' +
-    '<div class="keys"><span class="chip">▲ climb</span><span class="chip">▶ speed up</span><span class="chip">◀ slow down</span></div>' +
-    '<div class="stat">' + SAVE.bank + ' gold in the bank' + (G.best ? ' · best run ' + G.best : '') + '</div>' +
-    '<p>Flying the ' + PL.name + ' over ' + TM.name + ' · Course ' + courseId() + '<br>Every pilot flies today\'s course. The day\'s best runs fly beside you as ghosts.</p>' +
-    '</div><div class="actions">' +
-    '<button class="go" id="startBtn">Take off</button>' +
-    '<button class="go alt" id="shopBtn">Shop</button>' +
-    '</div>';
+  state='start'; clearInput(); applyEquip();
+  document.getElementById('flightBar').classList.add('hide');
+  document.getElementById('tutorialHint').classList.add('hide');
+  document.getElementById('panel').classList.add('hide');
+  if(flightMode==='tutorial') flightMode='free';
+  cardEl.classList.add('briefing');
+  cardEl.innerHTML='<div class="body brief-grid"><section><h1>Sky Islands</h1><p class="intro">A little plane. A world to discover.</p>'+
+    '<div class="flight-choice"><button id="freeMode" class="'+(flightMode==='free'?'selected':'')+'">Free Flight</button><button id="dailyMode" class="'+(flightMode==='daily'?'selected':'')+'">Daily Race</button></div>'+
+    '<p>'+(flightMode==='daily'?'Three minutes. Same Bluebird, same course, same chance. Cheat codes are disabled.':'Fly the '+PL.name+'. Deliver parcels, find landmarks and make every landing count.'+(SAVE.god?' Invincibility is on.':''))+'</p>'+
+    '<label class="small-note" for="ghostChoice">Fly alongside </label><select id="ghostChoice"><option value="personal">My best ghost</option><option value="rival">Nearby rival (Daily Race)</option><option value="none">No ghost</option></select>'+
+    '<p class="small-note">'+SAVE.bank+' gold in the bank · '+(flightMode==='daily'?'Today’s best '+(SAVE.dailyBest[courseId()]||0):'Best flight '+SAVE.best)+'<br>Course '+courseId()+' · missions reset at midnight UTC</p></section>'+
+    '<section><h3>Today’s missions</h3>'+missionHTML()+'<p class="small-note">Mission rewards go straight to your bank.</p></section></div>'+
+    '<div class="actions brief-footer"><button class="go" id="startBtn">'+(!SAVE.tutorial?'Learn to fly':flightMode==='daily'?'Race today':'Take off')+'</button><button class="minor" id="shopBtn">Hangar</button><button class="minor" id="logBtn">Logbook</button><button class="minor" id="settingsBtn">Settings</button>'+ (SAVE.tutorial?'<button class="minor" id="trainingBtn">Training</button>':'<button class="minor" id="skipTraining">Skip training</button>')+'</div>';
+  document.getElementById('ghostChoice').value=SAVE.settings.ghost;
+  document.getElementById('ghostChoice').onchange=e=>{SAVE.settings.ghost=e.target.value; persist();};
+  document.getElementById('startBtn').onclick=()=>{ if(!SAVE.tutorial) flightMode='tutorial'; start(); };
+  document.getElementById('freeMode').onclick=()=>{flightMode='free'; showStart();};
+  document.getElementById('dailyMode').onclick=()=>{flightMode='daily'; showStart();};
+  document.getElementById('shopBtn').onclick=openShop;
+  document.getElementById('logBtn').onclick=showLogbook;
+  document.getElementById('settingsBtn').onclick=showSettings;
+  if(SAVE.tutorial) document.getElementById('trainingBtn').onclick=()=>{flightMode='tutorial'; start();};
+  else document.getElementById('skipTraining').onclick=()=>{SAVE.tutorial=true; persist(); showStart();};
   screenEl.classList.remove('hide');
-  document.getElementById('startBtn').addEventListener('click', start);
-  document.getElementById('shopBtn').addEventListener('click', openShop);
 }
+function ghostKey(){return RULESET+':'+G.course+':'+G.mode+':'+PL.id;}
 function start(){
-  reset(); state = 'play'; last = performance.now();
-  screenEl.classList.add('hide');
-  blip(440,0.08,'square',0.04);
-  loadGhosts(G.course);
+  unlockAudio(); clearInput(); flightSerial++;
+  reset(); state='play'; last=performance.now(); accumulator=0;
+  screenEl.classList.add('hide'); document.getElementById('panel').classList.add('hide');
+  document.getElementById('flightBar').classList.remove('hide');
+  if(G.mode==='tutorial') { G.pickups=[]; G.nextPickup=10000000; }
+  blip(440,.08,'square',.04); loadGhosts(G.course); updateTutorialHint();
 }
 function loadGhosts(course){
-  api('/api/v1/ghosts?course=' + encodeURIComponent(course) + '&limit=3&player_id=' + encodeURIComponent(SAVE.pid))
-    .then(res => { if(G.course === course) G.ghosts = (res.ghosts || []).filter(g => Array.isArray(g.track) && g.track.length >= 4); })
-    .catch(() => {});
+  const serial=flightSerial, choice=SAVE.settings.ghost;
+  G.ghostChoice=choice;
+  if(choice==='none'||G.mode==='tutorial') return;
+  const mine=SAVE.ghosts[ghostKey()];
+  if(mine && Array.isArray(mine.track)) G.ghosts=[{...mine,you:true,plane:PL.id}];
+  if(G.mode!=='daily'){ G.ghostStatus=mine?'Racing your best':'Finish a flight to record your ghost'; return; }
+  G.ghostStatus=choice==='rival'?'Finding a rival…':'Loading your ghost…';
+  api('/api/v2/ghosts?course='+encodeURIComponent(course)+'&player_id='+encodeURIComponent(SAVE.pid)+'&selection='+choice+'&ruleset='+RULESET)
+    .then(res=>{
+      if(serial!==flightSerial||G.ended) return;
+      const ghosts=(res.ghosts||[]).filter(g=>Array.isArray(g.track)&&g.track.length>=4);
+      if(ghosts.length) G.ghosts=ghosts;
+      G.ghostStatus=ghosts.length?'':G.ghosts.length?'Racing your saved best':'No ghost yet — set the first flight!';
+    }).catch(()=>{if(serial===flightSerial) G.ghostStatus=G.ghosts.length?'Offline · racing your saved best':'Offline · your race still counts locally';});
 }
 function gameOver(){
-  state = 'over';
-  const score = Math.floor(G.gold);
-  SAVE.bank += score;
-  if(score > G.best) G.best = score;
-  saveBest();
-  cardEl.innerHTML =
-    '<div class="body">' +
-    '<h1>' + (G.ranDry ? 'Ran dry' : 'Down in the drink') + '</h1>' +
-    '<div class="stat">' + score + ' gold</div>' +
-    '<p>' + G.found + ' island' + (G.found===1?'':'s') + ' found · ' + Math.floor(G.dist/100) + ' km flown</p>' +
-    '<p>Best run ' + G.best + ' gold · ' + SAVE.bank + ' gold in the bank</p>' +
-    (score > 0 ? '<div id="lb"></div>' : '') +
-    '</div><div class="actions">' +
-    '<button class="go" id="againBtn">Fly again</button>' +
-    '<button class="go alt" id="shopBtn2">Shop</button>' +
-    '</div>';
+  if(G.ended) return;
+  G.ended=true; state='over'; clearInput();
+  document.getElementById('flightBar').classList.add('hide');
+  document.getElementById('tutorialHint').classList.add('hide');
+  const score=Math.floor(G.gold), key=ghostKey();
+  if(G.mode!=='tutorial'){
+    SAVE.bank+=score;
+    if(G.mode==='daily') SAVE.dailyBest[G.course]=Math.max(score,SAVE.dailyBest[G.course]||0);
+    else if(!G.assisted && score>SAVE.best) SAVE.best=score;
+    if(!G.assisted && G.runT<=600 && (!SAVE.ghosts[key]||score>SAVE.ghosts[key].score)){
+      SAVE.ghosts[key]={score,track:G.rec.slice(),name:'Your best',plane:PL.id};
+      const keys=Object.keys(SAVE.ghosts); while(keys.length>8) delete SAVE.ghosts[keys.shift()];
+    }
+    for(const old of Object.keys(SAVE.dailyBest).sort().slice(0,-30)) delete SAVE.dailyBest[old];
+  }
+  G.best=SAVE.best; persist();
+  cardEl.classList.remove('briefing');
+  const ranked=G.mode==='daily'&&!G.assisted&&G.rec.length>=4;
+  cardEl.innerHTML='<div class="body"><h1>'+esc(G.reason||(G.ranDry?'Ran dry':'Flight over'))+'</h1><div class="stat">'+score+' gold</div>'+
+    '<p>'+G.found+' islands · '+G.rings+' rings · '+G.deliveries+' deliveries<br>'+Math.floor(G.dist/100)+' km flown · '+G.landings+' landings</p>'+
+    '<p>'+SAVE.bank+' gold in the bank'+(G.rewardGold?' · '+G.rewardGold+' mission bonus already banked':'')+'</p>'+
+    (ranked?'<div id="lb"></div>':'<p class="small-note">'+(G.assisted?'Assisted Free Flight · excluded from records and rankings':'Your best ghost is saved on this device. Try Daily Race to compete online.')+'</p>')+
+    '</div><div class="actions"><button class="go" id="againBtn">Fly again</button><button class="go alt" id="homeBtn">Flight club</button></div>';
+  document.getElementById('againBtn').onclick=start;
+  document.getElementById('homeBtn').onclick=showStart;
   screenEl.classList.remove('hide');
-  document.getElementById('againBtn').addEventListener('click', start);
-  document.getElementById('shopBtn2').addEventListener('click', openShop);
-  mountLeaderboard({ score, islands:G.found, landings:G.landings, km:Math.floor(G.dist/100), course:G.course, track:G.rec });
+  if(ranked) mountLeaderboard({score,islands:G.found,landings:G.landings,km:Math.floor(G.dist/100),course:G.course,track:G.rec,plane:PL.id,mode:'daily',assisted:false,ruleset:RULESET,duration:Math.min(DAILY_SECONDS,G.runT)});
 }
 
 // ---------- shop ----------
@@ -1508,7 +1912,7 @@ function previewTheme(cv, th){
 }
 
 function bars(pl){
-  const set = [['SPD', pl.spd/1.3],['LIFT', pl.lift/1.3],['FUEL', (1.3-pl.burn)/0.75]];
+  const set = [['Speed', pl.spd/1.3],['Lift', pl.lift/1.3],['Economy', (1.3-pl.burn)/0.75]];
   return '<div class="bars">' + set.map(([k,v]) =>
     '<span>'+k+'</span><b><i style="width:'+Math.round(clamp(v,0.12,1)*100)+'%"></i></b>').join('') + '</div>';
 }
@@ -1579,7 +1983,7 @@ function redeem(){
 document.getElementById('codeGo').addEventListener('click', redeem);
 codeIn.addEventListener('keydown', e => { if(e.key === 'Enter') redeem(); });
 
-function openShop(){ renderShop(); screenEl.classList.add('hide'); shopEl.classList.remove('hide'); }
+function openShop(){ applyEquip(); renderShop(); screenEl.classList.add('hide'); shopEl.classList.remove('hide'); }
 function closeShop(){
   shopEl.classList.add('hide');
   if(state === 'start') showStart(); else if(state === 'over') screenEl.classList.remove('hide');
@@ -1602,42 +2006,43 @@ actBtn.addEventListener('click', e => {
   else if(state === 'landed') takeOff();
 });
 
-// ---------- input ----------
-function bind(el, key){
-  const on = e => { e.preventDefault(); input[key] = true; el.classList.add('on');
-    try{ el.setPointerCapture(e.pointerId); }catch(err){} };
-  const off = e => { input[key] = false; el.classList.remove('on'); };
-  el.addEventListener('pointerdown', on);
-  el.addEventListener('pointerup', off);
-  el.addEventListener('pointercancel', off);
-  el.addEventListener('lostpointercapture', off);
-  el.addEventListener('contextmenu', e => e.preventDefault());
+// ---------- input: each pointer and keyboard key owns only its own control ----------
+const touchPointers={up:new Set(),left:new Set(),right:new Set()}, keyboardKeys=new Set();
+function syncInput(){
+  for(const [key,id,keys] of [['up','btnU',['arrowup','w',' ']],['left','btnL',['arrowleft','a']],['right','btnR',['arrowright','d']]]){
+    input[key]=touchPointers[key].size>0||keys.some(k=>keyboardKeys.has(k));
+    document.getElementById(id).classList.toggle('on',input[key]);
+  }
 }
-bind(document.getElementById('btnU'), 'up');
-bind(document.getElementById('btnL'), 'left');
-bind(document.getElementById('btnR'), 'right');
-window.addEventListener('pointerup', () => {
-  input.up = input.left = input.right = false;
-  document.querySelectorAll('.rb').forEach(b => b.classList.remove('on'));
+function bind(el,key){
+  el.addEventListener('pointerdown',e=>{
+    if(state!=='play') return;
+    e.preventDefault(); touchPointers[key].add(e.pointerId); syncInput();
+    try{el.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  const off=e=>{touchPointers[key].delete(e.pointerId); syncInput();};
+  for(const type of ['pointerup','pointercancel','lostpointercapture']) el.addEventListener(type,off);
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+bind(document.getElementById('btnU'),'up'); bind(document.getElementById('btnL'),'left'); bind(document.getElementById('btnR'),'right');
+for(const type of ['pointerup','pointercancel']) window.addEventListener(type,e=>{
+  for(const pointers of Object.values(touchPointers)) pointers.delete(e.pointerId); syncInput();
 });
-window.addEventListener('keydown', e => {
-  if(e.repeat) return;
-  const k = e.key.toLowerCase();
-  if(k==='arrowup'||k==='w'||k===' ') { input.up = true; e.preventDefault(); }
-  if(k==='arrowleft'||k==='a') input.left = true;
-  if(k==='arrowright'||k==='d') input.right = true;
-  if(k==='enter' && state !== 'play') start();
+window.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea,select,button')||e.repeat) return;
+  const k=e.key.toLowerCase();
+  if(k==='escape'||k==='p'){ if(state==='paused') resumeFlight(); else pauseFlight(); e.preventDefault(); return; }
+  if(state!=='play') return;
+  if(['arrowup','arrowleft','arrowright','w','a','d',' '].includes(k)){keyboardKeys.add(k); syncInput(); e.preventDefault();}
+  if(k==='enter') beginLanding();
 });
-window.addEventListener('keyup', e => {
-  const k = e.key.toLowerCase();
-  if(k==='arrowup'||k==='w'||k===' ') input.up = false;
-  if(k==='arrowleft'||k==='a') input.left = false;
-  if(k==='arrowright'||k==='d') input.right = false;
+window.addEventListener('keyup',e=>{keyboardKeys.delete(e.key.toLowerCase()); syncInput();});
+window.addEventListener('blur',()=>{clearInput(); pauseFlight();});
+document.addEventListener('visibilitychange',()=>{
+  clearInput(); last=performance.now(); accumulator=0;
+  if(document.hidden) pauseFlight();
 });
-document.addEventListener('visibilitychange', () => {
-  input.up = input.left = input.right = false;
-  last = performance.now();
-});
+document.getElementById('pauseBtn').onclick=pauseFlight;
 
 // ---------- go ----------
 resize();

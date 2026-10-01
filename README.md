@@ -29,7 +29,7 @@ phone for frame rate, haptics and the silent switch. The simulator has no haptic
 
 The project is wired for Xcode Cloud: the `Sky Islands` scheme is shared, automatic signing uses
 team TV3LZKGB46, and `ios/App/ci_scripts/ci_post_clone.sh` installs Node, runs
-`npm ci` and `cap sync`, repoints the Capacitor runtime at the vendored
+`npm ci`, `npm test` and `npm run sync`, repoints the Capacitor runtime at the vendored
 `ios/App/capacitor-swift-pm` (Xcode Cloud will not start a workflow while a dependency
 lives in a GitHub org you cannot install its app into), and stamps the build number into
 `CFBundleVersion`. Every push to `main` can produce a TestFlight build once a workflow
@@ -62,18 +62,34 @@ cp assets/splash.png assets/splash-dark.png
 npm run assets
 ```
 
-## Native hooks inside the HTML
+## Flight Club (1.1.0)
 
-The game is unchanged apart from two additive edits:
+The single-file Canvas game now includes a three-step flight school, pause/resume,
+per-pointer touch controls, saved sound/haptic/motion/control settings, daily missions,
+runway deliveries, ring/bounce/low-pass combos and a discovery logbook. Five aircraft
+have distinct shapes; five biomes have their own scenery, landmarks and cached island
+art. All game code and procedural visuals remain in `www/index.html`.
 
-- The Google Fonts `<link>` is replaced with a local `@font-face`.
-- A `haptic()` helper (a no-op outside Capacitor) fires a light impact on jump pads,
-  bounce clouds, touchdown and shield/god hits, and a medium impact on real damage.
+Free Flight uses owned aircraft and permits the existing free cheat codes. Daily Race
+uses a fixed Bluebird, shared theme and course, and a 180-second limit. Invincibility is
+disabled in races. Physics run at fixed 60 Hz, world height and pilot position are shared
+across viewports, and ghosts record at 10 Hz using normalized altitude. New races use a
+separate `/api/v2` leaderboard and ruleset, preserving the old API for previous builds.
+Mission rewards never increase ranked scores. Personal ghosts also work offline.
 
-Save data lives in `localStorage` under `skyIslandsSave`, which now also holds the pilot
-name and a random player id used by the leaderboard. Posting a score is opt-in from the
-game-over card, times out after 6 s, and fails quietly, so the game works fully offline.
-When served from localhost the client talks to `http://127.0.0.1:8000` instead of
-production.
+Save data remains under `skyIslandsSave`; old gold, planes, themes, codes and player IDs
+are retained. Settings, missions, discoveries, badges and recent personal ghosts are
+added to that save. Native haptics remain guarded Capacitor calls. Audio starts only
+following a flight-start gesture; all local play works offline.
 
-See `HANDOFF.md` for the full design notes and the acceptance checklist.
+## Validation
+
+```sh
+npm test       # saved progress, touch input, pause, features, determinism and ghost races
+npm run sync   # includes the mandatory Swift package patch
+```
+
+The logic suite executes the real inline script with a small DOM/Canvas stub. It does
+not replace visual or native-device checks. API test instructions are in
+`server/README.md`; the device acceptance checklist and reviewer notes are in
+`store/testflight-1.1.0.md`. See `HANDOFF.md` for the original wrapper brief.

@@ -26,12 +26,13 @@ import threading
 import time
 from collections import defaultdict, deque
 from contextlib import contextmanager
-from typing import Iterator
+from datetime import date, datetime, timezone
+from typing import Iterator, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 DB_PATH = os.environ.get("SKY_DB", "/data/scores.db")
 MAX_SCORE = int(os.environ.get("SKY_MAX_SCORE", "250000"))     # gold in one run
@@ -133,10 +134,26 @@ def init_db() -> None:
               PRIMARY KEY (course, player_id)
             );
             CREATE INDEX IF NOT EXISTS runs_by_course ON runs(course, score DESC, updated_at ASC);
+            CREATE TABLE IF NOT EXISTS ranked_runs (
+              ruleset TEXT NOT NULL,
+              course TEXT NOT NULL,
+              player_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              score INTEGER NOT NULL,
+              islands INTEGER NOT NULL,
+              landings INTEGER NOT NULL,
+              km INTEGER NOT NULL,
+              duration REAL NOT NULL,
+              track TEXT NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (ruleset, course, player_id)
+            );
+            CREATE INDEX IF NOT EXISTS ranked_by_course
+              ON ranked_runs(ruleset, course, score DESC, updated_at ASC, player_id ASC);
             """
         )
         # re-apply the current blocklist to names stored before it (or a word) existed
-        for table in ("scores", "runs"):
+        for table in ("scores", "runs", "ranked_runs"):
             for (name,) in conn.execute(f"SELECT DISTINCT name FROM {table}").fetchall():
                 if clean_name(name) != name:
                     conn.execute(f"UPDATE {table} SET name=? WHERE name=?", (clean_name(name), name))
@@ -395,3 +412,130 @@ def leaderboard(limit: int = Query(10, ge=1, le=100), player_id: str | None = Qu
                 mine = Entry(rank=_rank_of(conn, row["score"], row["updated_at"]), name=row["name"],
                              score=row["score"], islands=row["islands"], km=row["km"], you=True)
     return {"players": total, "top": top, "me": mine}
+
+
+# ---------- Flight Club races (separate from legacy, upgrade-assisted scores) ----------
+
+RULESET = "flight-club-1"
+
+
+class RankedScoreIn(ScoreIn):
+    ruleset: Literal["flight-club-1"]
+    mode: Literal["daily"]
+    plane: Literal["bluebird"]
+    assisted: Literal[False]
+    duration: float = Field(..., ge=0.1, le=180.05, allow_inf_nan=False)
+    course: str = Field(..., min_length=10, max_length=10)
+    track: list[float] = Field(..., min_length=4, max_length=3604)
+
+    @model_validator(mode="after")
+    def coherent_race(self) -> "RankedScoreIn":
+        try:
+            day = date.fromisoformat(self.course)
+        except ValueError as exc:
+            raise ValueError("bad course date") from exc
+        age = (datetime.now(timezone.utc).date() - day).days
+        if not 0 <= age <= 7:
+            raise ValueError("race must be from the last seven UTC days")
+        if abs((len(self.track) // 2 - 1) - self.duration * 10) > 2:
+            raise ValueError("track length does not match flight duration")
+        if self.track[0] > 1:
+            raise ValueError("track must start at takeoff")
+        for i in range(0, len(self.track), 2):
+            if not -0.1 <= self.track[i + 1] <= 1.6:
+                raise ValueError("altitude out of range")
+            if i and not 0 <= self.track[i] - self.track[i - 2] <= 125:
+                raise ValueError("implausible flight path")
+        if self.score > self.duration * 500 + 500:
+            raise ValueError("implausible score")
+        return self
+
+
+def _race_rows(conn: sqlite3.Connection, course: str) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT player_id,name,score,islands,km, "
+        "ROW_NUMBER() OVER (ORDER BY score DESC,updated_at ASC,player_id ASC) AS rank "
+        "FROM ranked_runs WHERE ruleset=? AND course=? ORDER BY rank",
+        (RULESET, course),
+    ).fetchall()
+
+
+def _race_board(conn: sqlite3.Connection, course: str, me: str | None, limit: int = 10) -> dict:
+    rows = _race_rows(conn, course)
+    mine = next((r for r in rows if r["player_id"] == me), None)
+    entries = [Entry(rank=r["rank"], name=r["name"], score=r["score"], islands=r["islands"],
+                     km=r["km"], you=r["player_id"] == me) for r in rows[:limit]]
+    return {"course": course, "ruleset": RULESET, "players": len(rows), "top": entries,
+            "rank": mine["rank"] if mine else None, "best": mine["score"] if mine else 0}
+
+
+def _check_course(course: str) -> None:
+    try:
+        if len(course) != 10:
+            raise ValueError
+        date.fromisoformat(course)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="bad course")
+
+
+@app.post("/api/v2/scores")
+def submit_ranked(body: RankedScoreIn, request: Request) -> dict:
+    _check_rate(_client_ip(request))
+    with db() as conn:
+        current = conn.execute(
+            "SELECT score FROM ranked_runs WHERE ruleset=? AND course=? AND player_id=?",
+            (RULESET, body.course, body.player_id),
+        ).fetchone()
+        improved = current is None or body.score > current["score"]
+        if improved:
+            conn.execute(
+                "INSERT OR REPLACE INTO ranked_runs "
+                "(ruleset,course,player_id,name,score,islands,landings,km,duration,track,updated_at) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (RULESET, body.course, body.player_id, body.name, body.score, body.islands,
+                 body.landings, body.km, body.duration, _compact(body.track), time.time_ns()),
+            )
+        else:
+            conn.execute("UPDATE ranked_runs SET name=? WHERE ruleset=? AND course=? AND player_id=?",
+                         (body.name, RULESET, body.course, body.player_id))
+        result = _race_board(conn, body.course, body.player_id)
+    return {**result, "improved": improved}
+
+
+@app.get("/api/v2/leaderboard")
+def ranked_board(course: str = Query(..., max_length=10),
+                 player_id: str | None = Query(None, max_length=64),
+                 ruleset: Literal["flight-club-1"] = RULESET) -> dict:
+    _check_course(course)
+    with db() as conn:
+        return _race_board(conn, course, player_id)
+
+
+@app.get("/api/v2/ghosts")
+def ranked_ghosts(course: str = Query(..., max_length=10),
+                  player_id: str | None = Query(None, max_length=64),
+                  selection: Literal["personal", "rival"] = "personal",
+                  ruleset: Literal["flight-club-1"] = RULESET) -> dict:
+    _check_course(course)
+    with db() as conn:
+        rows = _race_rows(conn, course)
+        mine = next((r for r in rows if r["player_id"] == player_id), None)
+        selected = mine
+        if selection == "rival":
+            others = [r for r in rows if r["player_id"] != player_id]
+            if mine:
+                # Prefer the next pilot ahead; if already leading, chase the runner-up.
+                ahead = [r for r in others if r["rank"] < mine["rank"]]
+                selected = ahead[-1] if ahead else (others[0] if others else None)
+            else:
+                selected = others[-1] if others else None
+        ghosts = []
+        if selected:
+            track = conn.execute(
+                "SELECT track FROM ranked_runs WHERE ruleset=? AND course=? AND player_id=?",
+                (RULESET, course, selected["player_id"]),
+            ).fetchone()["track"]
+            ghosts.append({"name": selected["name"], "score": selected["score"], "rank": selected["rank"],
+                           "you": selected["player_id"] == player_id, "plane": "bluebird",
+                           "track": json.loads(track)})
+    return {"course": course, "ruleset": RULESET, "players": len(rows), "ghosts": ghosts}
